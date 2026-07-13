@@ -1,0 +1,299 @@
+import SwiftUI
+
+struct LanguagePickerView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let role: LanguageSelectionRole
+    @Binding var sourceSelection: Language
+    @Binding var targetSelection: Language
+    @State private var effectiveRole: LanguageSelectionRole
+    @State private var searchText = ""
+    @FocusState private var isSearchFocused: Bool
+
+    init(
+        role: LanguageSelectionRole,
+        sourceSelection: Binding<Language>,
+        targetSelection: Binding<Language>
+    ) {
+        self.role = role
+        _sourceSelection = sourceSelection
+        _targetSelection = targetSelection
+        _effectiveRole = State(initialValue: role)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+            segmentedControl
+            searchBar
+            ScrollView(showsIndicators: false) {
+                if hasSearchResults {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if !filteredRecentLanguages.isEmpty {
+                            languageSection("最近使用", languages: filteredRecentLanguages)
+                        }
+
+                        if !filteredLanguages.isEmpty {
+                            languageSection("全部语言", languages: filteredLanguages)
+                        }
+                    }
+                    .padding(.horizontal, 18)
+                    .padding(.top, 8)
+                    .padding(.bottom, 30)
+                } else {
+                    emptySearchState
+                }
+            }
+            .scrollDismissesKeyboard(.interactively)
+        }
+        .background(AppTheme.paper.ignoresSafeArea())
+    }
+
+    private var header: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("选择语言")
+                    .font(.system(size: 28, weight: .bold))
+                    .tracking(-0.5)
+                    .foregroundStyle(AppTheme.ink)
+                Text(effectiveRole.title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(AppTheme.muted)
+                    .accessibilityIdentifier("languagePicker.currentRole")
+            }
+
+            Spacer()
+            PrototypeCloseButton { dismiss() }
+                .accessibilityLabel("关闭语言选择")
+                .accessibilityIdentifier("languagePicker.closeButton")
+        }
+        .padding(.horizontal, 22)
+        .padding(.top, 20)
+        .padding(.bottom, 4)
+    }
+
+    private var segmentedControl: some View {
+        HStack(spacing: 0) {
+            segment("翻译到", role: .target)
+            segment("翻译自", role: .source)
+        }
+        .padding(3)
+        .background(Color(hex: 0xEAE5DB), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding(.horizontal, 18)
+        .padding(.top, 16)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("语言方向")
+        .accessibilityIdentifier("languagePicker.roleSelector")
+    }
+
+    private func segment(_ title: String, role segmentRole: LanguageSelectionRole) -> some View {
+        let isActive = effectiveRole == segmentRole
+
+        return Button {
+            withAnimation(.easeInOut(duration: 0.18)) {
+                effectiveRole = segmentRole
+            }
+            isSearchFocused = true
+        } label: {
+            Text(title)
+                .font(.system(size: 14, weight: isActive ? .semibold : .medium))
+                .foregroundStyle(isActive ? AppTheme.ink : AppTheme.muted)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .background(
+                    Group {
+                        if isActive {
+                            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                .fill(.white)
+                                .softShadow(radius: 4, y: 1, opacity: 0.06)
+                        }
+                    }
+                )
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityValue(isActive ? "已选择" : "未选择")
+        .accessibilityIdentifier("languagePicker.role.\(segmentRole.rawValue)")
+    }
+
+    private var searchBar: some View {
+        HStack(spacing: 9) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(AppTheme.faint)
+
+            TextField("搜索语言", text: $searchText)
+                .font(.system(size: 16, weight: .regular))
+                .foregroundStyle(AppTheme.ink)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.search)
+                .focused($isSearchFocused)
+                .onSubmit {
+                    isSearchFocused = false
+                }
+                .accessibilityLabel("搜索语言")
+                .accessibilityHint("可按语言名称或语言代码搜索")
+                .accessibilityIdentifier("languagePicker.searchField")
+
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                    isSearchFocused = true
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(AppTheme.faint)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("清除搜索")
+                .accessibilityIdentifier("languagePicker.clearSearchButton")
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
+        .background(.white, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .softShadow(radius: 5, y: 1, opacity: 0.04)
+        .padding(.horizontal, 18)
+        .padding(.top, 14)
+        .padding(.bottom, 6)
+    }
+
+    private var emptySearchState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 28, weight: .medium))
+                .foregroundStyle(AppTheme.faint)
+
+            VStack(spacing: 5) {
+                Text("未找到语言")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(AppTheme.ink)
+                Text("请尝试其他名称或语言代码")
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundStyle(AppTheme.muted)
+            }
+
+            Button("清除搜索") {
+                searchText = ""
+                isSearchFocused = true
+            }
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(AppTheme.terracotta)
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("languagePicker.emptyState.clearButton")
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 86)
+        .padding(.horizontal, 30)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("languagePicker.emptyState")
+    }
+
+    private var filteredRecentLanguages: [Language] {
+        Language.recent.filter(matchesSearch)
+    }
+
+    private var filteredLanguages: [Language] {
+        Language.all.filter { language in
+            !Language.recent.contains(language) && matchesSearch(language)
+        }
+    }
+
+    private var hasSearchResults: Bool {
+        !filteredRecentLanguages.isEmpty || !filteredLanguages.isEmpty
+    }
+
+    private func matchesSearch(_ language: Language) -> Bool {
+        let query = normalized(searchText.trimmingCharacters(in: .whitespacesAndNewlines))
+        guard !query.isEmpty else { return true }
+
+        return [language.nativeName, language.chineseName, language.code]
+            .map(normalized)
+            .contains { $0.contains(query) }
+    }
+
+    private func normalized(_ value: String) -> String {
+        value.folding(
+            options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive],
+            locale: .current
+        )
+    }
+
+    private func languageSection(_ title: String, languages: [Language]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionLabel(text: title)
+                .padding(.horizontal, 4)
+                .padding(.top, title == "全部语言" ? 10 : 0)
+
+            VStack(spacing: 0) {
+                ForEach(Array(languages.enumerated()), id: \.element.id) { index, language in
+                    Button {
+                        if effectiveRole == .source {
+                            sourceSelection = language
+                        } else {
+                            targetSelection = language
+                        }
+                        dismiss()
+                    } label: {
+                        LanguageRow(language: language, isSelected: language == activeSelection)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(language.nativeName)，\(language.chineseName)")
+                    .accessibilityValue(language == activeSelection ? "已选择" : "")
+                    .accessibilityHint("选择为\(effectiveRole.title)语言")
+                    .accessibilityIdentifier("languagePicker.language.\(language.code)")
+
+                    if index < languages.count - 1 {
+                        Rectangle()
+                            .fill(AppTheme.divider)
+                            .frame(height: 1)
+                            .padding(.leading, 16)
+                    }
+                }
+            }
+            .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .softShadow(radius: 7, y: 2, opacity: 0.045)
+        }
+    }
+
+    private var activeSelection: Language {
+        effectiveRole == .source ? sourceSelection : targetSelection
+    }
+}
+
+private struct LanguageRow: View {
+    let language: Language
+    let isSelected: Bool
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(language.nativeName)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(AppTheme.ink)
+                Text(language.chineseName)
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(AppTheme.faint)
+            }
+            Spacer()
+            if isSelected {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(AppTheme.terracotta)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .contentShape(Rectangle())
+    }
+}
+
+#Preview {
+    LanguagePickerView(
+        role: .target,
+        sourceSelection: .constant(.chinese),
+        targetSelection: .constant(.english)
+    )
+}
