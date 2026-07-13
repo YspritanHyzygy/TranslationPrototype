@@ -24,18 +24,6 @@ enum AppMode: String, CaseIterable, Identifiable {
         case .camera: "camera"
         }
     }
-
-    var next: AppMode {
-        let all = Self.allCases
-        let index = all.firstIndex(of: self) ?? 0
-        return all[(index + 1) % all.count]
-    }
-
-    var previous: AppMode {
-        let all = Self.allCases
-        let index = all.firstIndex(of: self) ?? 0
-        return all[(index + all.count - 1) % all.count]
-    }
 }
 
 enum LanguageSelectionRole: String, Identifiable {

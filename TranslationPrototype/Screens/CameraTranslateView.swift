@@ -30,7 +30,6 @@ struct CameraTranslateView: View {
             .padding(.bottom, 20)
         }
         .foregroundStyle(.white)
-        .ignoresSafeArea(edges: .bottom)
         .task(id: selectedPhoto) {
             await loadSelectedPhoto()
         }
