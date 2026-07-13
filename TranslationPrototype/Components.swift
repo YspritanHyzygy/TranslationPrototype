@@ -88,43 +88,6 @@ struct LanguagePairPill: View {
     }
 }
 
-struct ModeSwitcher: View {
-    @Binding var selection: AppMode
-
-    var body: some View {
-        HStack(spacing: 4) {
-            ForEach(AppMode.allCases) { mode in
-                Button {
-                    selection = mode
-                } label: {
-                    VStack(spacing: 4) {
-                        Image(systemName: mode.systemImage)
-                            .font(.system(size: 19, weight: .semibold))
-                        Text(mode.title)
-                            .font(.system(size: 11, weight: selection == mode ? .semibold : .medium))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 9)
-                    .foregroundStyle(selection == mode ? .white : AppTheme.muted)
-                    .background(
-                        Group {
-                            if selection == mode {
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .fill(AppTheme.terracotta)
-                            }
-                        }
-                    )
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(Text(mode.title))
-            }
-        }
-        .padding(5)
-        .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .softShadow(radius: 14, y: 4, opacity: 0.075)
-    }
-}
-
 struct SectionLabel: View {
     let text: String
     var color: Color = AppTheme.faint

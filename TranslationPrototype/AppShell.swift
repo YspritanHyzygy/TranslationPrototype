@@ -13,46 +13,52 @@ struct AppShell: View {
     }
 
     var body: some View {
-        ZStack {
-            activeScreen
-                .transition(.opacity.combined(with: .scale(scale: 0.985)))
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(AppTheme.paper.ignoresSafeArea())
-        .tint(AppTheme.terracotta)
-        .gesture(modeSwipeGesture)
-        .animation(.spring(response: 0.34, dampingFraction: 0.88), value: selectedMode)
-        .sheet(item: $sheetDestination) { destination in
-            sheetView(for: destination)
-        }
-    }
-
-    @ViewBuilder
-    private var activeScreen: some View {
-        switch selectedMode {
-        case .text:
+        TabView(selection: $selectedMode) {
             TextTranslateView(
                 session: session,
-                selectedMode: $selectedMode,
                 onSwap: swapLanguages,
                 onPickSource: { sheetDestination = .language(.source) },
                 onPickTarget: { sheetDestination = .language(.target) },
                 onHistory: { sheetDestination = .history },
                 onSettings: { sheetDestination = .language(.target) }
             )
-        case .voice:
+            .tabItem {
+                Label(AppMode.text.title, systemImage: AppMode.text.systemImage)
+            }
+            .tag(AppMode.text)
+
             VoiceConversationView(
                 sourceLanguage: session.targetLanguage,
                 targetLanguage: session.sourceLanguage,
                 onPickSource: { sheetDestination = .language(.target) },
                 onPickTarget: { sheetDestination = .language(.source) }
             )
-        case .camera:
+            .tabItem {
+                Label(AppMode.voice.title, systemImage: AppMode.voice.systemImage)
+            }
+            .tag(AppMode.voice)
+
             CameraTranslateView(
                 sourceLanguage: session.sourceLanguage,
                 targetLanguage: session.targetLanguage,
                 onPickLanguage: { sheetDestination = .language(.target) }
             )
+            .tabItem {
+                Label(AppMode.camera.title, systemImage: AppMode.camera.systemImage)
+            }
+            .tag(AppMode.camera)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AppTheme.paper.ignoresSafeArea())
+        .tint(AppTheme.terracotta)
+        .onChange(of: selectedMode) { previousMode, newMode in
+            if previousMode == .text, newMode != .text {
+                dismissKeyboard()
+            }
+        }
+        .sensoryFeedback(.selection, trigger: selectedMode)
+        .sheet(item: $sheetDestination) { destination in
+            sheetView(for: destination)
         }
     }
 
@@ -87,21 +93,18 @@ struct AppShell: View {
         }
     }
 
-    private var modeSwipeGesture: some Gesture {
-        DragGesture(minimumDistance: 44)
-            .onEnded { value in
-                guard abs(value.translation.width) > abs(value.translation.height) else { return }
-                if value.translation.width < -40 {
-                    selectedMode = selectedMode.next
-                } else if value.translation.width > 40 {
-                    selectedMode = selectedMode.previous
-                }
-            }
-    }
-
     private func swapLanguages() {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         session.swapLanguages()
+    }
+
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil,
+            from: nil,
+            for: nil
+        )
     }
 }
 

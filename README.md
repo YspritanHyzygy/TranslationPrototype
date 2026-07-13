@@ -8,7 +8,7 @@
 - App 名称：译境
 - Bundle ID：`com.codex.translationprototype`
 - 最低系统：iOS 17
-- 技术：SwiftUI、Observation、AVFoundation、PhotosUI
+- 技术：SwiftUI、原生 TabView、Observation、AVFoundation、PhotosUI；iOS 26+ 的系统标签栏自动采用 Liquid Glass。
 
 ## 已实现
 
@@ -17,7 +17,7 @@
 - 相机翻译：照片选择、识别加载态、菜单翻译覆盖卡、闪光灯与曝光状态。
 - 语言选择：源/目标语言切换、名称/别名/代码搜索、选择状态与空结果状态。
 - 历史与收藏：共享翻译记录、收藏过滤、即时星标切换、点选记录回填文字页。
-- 横向滑动可在文字、语音、相机三种模式间切换。
+- 文字、语音、相机作为原生 TabView 的三个顶层区域；标签栏持续可见并保留各 tab 状态，iOS 26+ 由系统呈现 Liquid Glass，iOS 17–25 使用对应系统标签栏外观；selection 实际变化时触发系统触觉反馈。
 
 > 这是可交互的产品原型。翻译、语音转写与菜单 OCR 使用本地演示数据，不包含线上翻译服务或生产级模型接入。
 
@@ -51,7 +51,7 @@ xcodebuild \
 
 ## 自动化验收
 
-工程包含 `TranslationPrototypeUITests` UI 测试 Target，覆盖文字翻译与收藏、语言搜索与选择、语音暂停与新增对话、相机识别结果四条主流程。可用任意已安装的 iPhone 模拟器运行；例如：
+工程包含 `TranslationPrototypeUITests` UI 测试 Target，覆盖文字翻译与收藏、语言搜索与选择、语音暂停与新增对话、相机识别结果，以及原生 TabView 的跨 tab 切换、选中态同步和状态保留，共五条主流程。可用任意已安装的 iPhone 模拟器运行；例如：
 
 ```bash
 /Applications/Xcode-beta.app/Contents/Developer/usr/bin/xcodebuild test \
@@ -63,5 +63,7 @@ xcodebuild \
   CODE_SIGNING_ALLOWED=NO \
   -only-testing:TranslationPrototypeUITests
 ```
+
+模拟器可以验证 selection 确实发生变化，但无法验证实体震感；触觉强度与手感需要在真实 iPhone 上最终确认。
 
 最终视觉对照、修正记录与测试证据见 `design-qa.md`。

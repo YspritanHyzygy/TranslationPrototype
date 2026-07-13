@@ -79,6 +79,7 @@ final class TranslationPrototypeUITests: XCTestCase {
     func testVoicePauseResumeAddsConversationTurn() throws {
         let app = launchApp(mode: "voice")
 
+        XCTAssertTrue(waitUntilSelected(tabButton(named: "语音", in: app)))
         let microphone = element("conversation-microphone-button", in: app)
         let listeningStatus = element("conversation-listening-status", in: app)
         XCTAssertTrue(microphone.waitForExistence(timeout: 3))
@@ -102,8 +103,21 @@ final class TranslationPrototypeUITests: XCTestCase {
     func testCameraShutterShowsRecognizedMenuResults() throws {
         let app = launchApp(mode: "camera")
 
+        XCTAssertTrue(waitUntilSelected(tabButton(named: "相机", in: app)))
+        let gallery = element("camera.galleryPicker", in: app)
         let shutter = element("camera.shutterButton", in: app)
+        let flash = element("camera.flashButton", in: app)
+        XCTAssertTrue(gallery.waitForExistence(timeout: 3))
         XCTAssertTrue(shutter.waitForExistence(timeout: 3))
+        XCTAssertTrue(flash.waitForExistence(timeout: 3))
+        XCTAssertTrue(waitUntilHittable(gallery))
+        XCTAssertTrue(waitUntilHittable(shutter))
+        XCTAssertTrue(waitUntilHittable(flash))
+
+        let tabBarFrame = app.tabBars.firstMatch.frame
+        XCTAssertFalse(gallery.frame.intersects(tabBarFrame))
+        XCTAssertFalse(shutter.frame.intersects(tabBarFrame))
+        XCTAssertFalse(flash.frame.intersects(tabBarFrame))
         shutter.tap()
 
         // As with voice processing, the loading state completes before XCUI's
@@ -117,9 +131,63 @@ final class TranslationPrototypeUITests: XCTestCase {
     }
 
     @MainActor
+    func testBottomNavigationPersistsAcrossEveryMode() throws {
+        let app = launchApp(mode: "text")
+
+        let tabBar = app.tabBars.firstMatch
+        XCTAssertTrue(tabBar.waitForExistence(timeout: 3))
+
+        let textMode = tabBar.buttons["文字"]
+        let voiceMode = tabBar.buttons["语音"]
+        let cameraMode = tabBar.buttons["相机"]
+
+        assertTabBarExists(tabBar: tabBar, text: textMode, voice: voiceMode, camera: cameraMode)
+        XCTAssertTrue(waitUntilSelected(textMode))
+
+        voiceMode.tap()
+        let microphone = element("conversation-microphone-button", in: app)
+        let listeningStatus = element("conversation-listening-status", in: app)
+        XCTAssertTrue(microphone.waitForExistence(timeout: 3))
+        XCTAssertTrue(waitUntilSelected(voiceMode))
+        XCTAssertTrue(waitUntilDeselected(textMode))
+        assertTabBarExists(tabBar: tabBar, text: textMode, voice: voiceMode, camera: cameraMode)
+        captureScreenshot(named: "native-tab-voice", of: app)
+
+        microphone.tap()
+        XCTAssertTrue(wait(for: NSPredicate(format: "label == %@", "已暂停 · 轻点继续"), on: listeningStatus))
+
+        cameraMode.tap()
+        let shutter = element("camera.shutterButton", in: app)
+        XCTAssertTrue(shutter.waitForExistence(timeout: 3))
+        XCTAssertTrue(waitUntilHittable(shutter))
+        XCTAssertTrue(waitUntilSelected(cameraMode))
+        XCTAssertTrue(waitUntilDeselected(voiceMode))
+        assertTabBarExists(tabBar: tabBar, text: textMode, voice: voiceMode, camera: cameraMode)
+        captureScreenshot(named: "native-tab-camera", of: app)
+
+        voiceMode.tap()
+        XCTAssertTrue(waitUntilSelected(voiceMode))
+        let restoredListeningStatus = element("conversation-listening-status", in: app)
+        let restoredMicrophone = element("conversation-microphone-button", in: app)
+        XCTAssertTrue(wait(for: NSPredicate(format: "label == %@", "已暂停 · 轻点继续"), on: restoredListeningStatus))
+        XCTAssertEqual(restoredMicrophone.label, "开始聆听")
+
+        textMode.tap()
+        XCTAssertTrue(element("source-text-editor", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(waitUntilSelected(textMode))
+        XCTAssertTrue(waitUntilDeselected(voiceMode))
+        assertTabBarExists(tabBar: tabBar, text: textMode, voice: voiceMode, camera: cameraMode)
+        captureScreenshot(named: "native-tab-text", of: app)
+    }
+
+    @MainActor
     private func launchApp(mode: String, sheet: String? = nil) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["--prototype-mode", mode]
+        app.launchArguments = [
+            "-AppleLanguages", "(zh-Hans)",
+            "-AppleLocale", "zh_Hans_CN",
+            "--prototype-mode", mode
+        ]
         if let sheet {
             app.launchArguments.append(contentsOf: ["--prototype-sheet", sheet])
         }
@@ -138,6 +206,53 @@ final class TranslationPrototypeUITests: XCTestCase {
         app.descendants(matching: .any)
             .matching(NSPredicate(format: "label CONTAINS %@", text))
             .firstMatch
+    }
+
+    @MainActor
+    private func tabButton(named title: String, in app: XCUIApplication) -> XCUIElement {
+        let tabBar = app.tabBars.firstMatch
+        XCTAssertTrue(tabBar.waitForExistence(timeout: 3))
+        let button = tabBar.buttons[title]
+        XCTAssertTrue(button.waitForExistence(timeout: 2))
+        return button
+    }
+
+    @MainActor
+    private func assertTabBarExists(
+        tabBar: XCUIElement,
+        text: XCUIElement,
+        voice: XCUIElement,
+        camera: XCUIElement,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        XCTAssertTrue(tabBar.exists, file: file, line: line)
+        XCTAssertTrue(text.waitForExistence(timeout: 2), file: file, line: line)
+        XCTAssertTrue(voice.waitForExistence(timeout: 2), file: file, line: line)
+        XCTAssertTrue(camera.waitForExistence(timeout: 2), file: file, line: line)
+    }
+
+    @MainActor
+    private func waitUntilSelected(_ element: XCUIElement) -> Bool {
+        wait(for: NSPredicate(format: "selected == YES"), on: element)
+    }
+
+    @MainActor
+    private func waitUntilDeselected(_ element: XCUIElement) -> Bool {
+        wait(for: NSPredicate(format: "selected == NO"), on: element)
+    }
+
+    @MainActor
+    private func waitUntilHittable(_ element: XCUIElement) -> Bool {
+        wait(for: NSPredicate(format: "hittable == YES"), on: element)
+    }
+
+    @MainActor
+    private func captureScreenshot(named name: String, of app: XCUIApplication) {
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 
     @MainActor

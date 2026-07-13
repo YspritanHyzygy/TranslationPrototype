@@ -4,7 +4,6 @@ import UIKit
 
 struct TextTranslateView: View {
     @Bindable var session: TranslationSession
-    @Binding var selectedMode: AppMode
     let onSwap: () -> Void
     let onPickSource: () -> Void
     let onPickTarget: () -> Void
@@ -49,11 +48,6 @@ struct TextTranslateView: View {
                 .padding(.top, 16)
                 .padding(.bottom, 16)
             }
-
-            ModeSwitcher(selection: $selectedMode)
-                .padding(.horizontal, 18)
-                .padding(.top, 10)
-                .padding(.bottom, 14)
         }
         .background(AppTheme.paper.ignoresSafeArea())
         .animation(.easeInOut(duration: 0.2), value: session.translatedText)
@@ -339,7 +333,6 @@ private struct AlternativeTranslationsView: View {
 #Preview {
     TextTranslateView(
         session: TranslationSession(),
-        selectedMode: .constant(.text),
         onSwap: {},
         onPickSource: {},
         onPickTarget: {},
