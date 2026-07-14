@@ -19,10 +19,18 @@
 		01A000000000000000000110 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000010 /* HistoryView.swift */; };
 		01A000000000000000000111 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000012 /* Assets.xcassets */; };
 		01B000000000000000000101 /* TranslationPrototypeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01B000000000000000000001 /* TranslationPrototypeUITests.swift */; };
+		01C000000000000000000101 /* TranslationSessionDraftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01C000000000000000000001 /* TranslationSessionDraftTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
 		01B000000000000000000090 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 01A000000000000000000060 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 01A000000000000000000040;
+			remoteInfo = TranslationPrototype;
+		};
+		01C000000000000000000090 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 01A000000000000000000060 /* Project object */;
 			proxyType = 1;
@@ -46,6 +54,8 @@
 		01A000000000000000000012 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		01B000000000000000000001 /* TranslationPrototypeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationPrototypeUITests.swift; sourceTree = "<group>"; };
 		01B000000000000000000011 /* TranslationPrototypeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TranslationPrototypeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		01C000000000000000000001 /* TranslationSessionDraftTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationSessionDraftTests.swift; sourceTree = "<group>"; };
+		01C000000000000000000011 /* TranslationPrototypeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TranslationPrototypeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -63,6 +73,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		01C000000000000000000020 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -70,6 +87,7 @@
 			isa = PBXGroup;
 			children = (
 				01A000000000000000000031 /* TranslationPrototype */,
+				01C000000000000000000031 /* TranslationPrototypeTests */,
 				01B000000000000000000031 /* TranslationPrototypeUITests */,
 				01A000000000000000000032 /* Products */,
 			);
@@ -93,6 +111,7 @@
 			isa = PBXGroup;
 			children = (
 				01A000000000000000000011 /* TranslationPrototype.app */,
+				01C000000000000000000011 /* TranslationPrototypeTests.xctest */,
 				01B000000000000000000011 /* TranslationPrototypeUITests.xctest */,
 			);
 			name = Products;
@@ -116,6 +135,14 @@
 				01B000000000000000000001 /* TranslationPrototypeUITests.swift */,
 			);
 			path = TranslationPrototypeUITests;
+			sourceTree = "<group>";
+		};
+		01C000000000000000000031 /* TranslationPrototypeTests */ = {
+			isa = PBXGroup;
+			children = (
+				01C000000000000000000001 /* TranslationSessionDraftTests.swift */,
+			);
+			path = TranslationPrototypeTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -156,6 +183,24 @@
 			productReference = 01B000000000000000000011 /* TranslationPrototypeUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		01C000000000000000000040 /* TranslationPrototypeTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 01C000000000000000000070 /* Build configuration list for PBXNativeTarget "TranslationPrototypeTests" */;
+			buildPhases = (
+				01C000000000000000000050 /* Sources */,
+				01C000000000000000000020 /* Frameworks */,
+				01C000000000000000000051 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				01C000000000000000000091 /* PBXTargetDependency */,
+			);
+			name = TranslationPrototypeTests;
+			productName = TranslationPrototypeTests;
+			productReference = 01C000000000000000000011 /* TranslationPrototypeTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -170,6 +215,10 @@
 						CreatedOnToolsVersion = 26.5;
 					};
 					01B000000000000000000040 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = 01A000000000000000000040;
+					};
+					01C000000000000000000040 = {
 						CreatedOnToolsVersion = 27.0;
 						TestTargetID = 01A000000000000000000040;
 					};
@@ -190,6 +239,7 @@
 			projectRoot = "";
 			targets = (
 				01A000000000000000000040 /* TranslationPrototype */,
+				01C000000000000000000040 /* TranslationPrototypeTests */,
 				01B000000000000000000040 /* TranslationPrototypeUITests */,
 			);
 		};
@@ -205,6 +255,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		01B000000000000000000051 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		01C000000000000000000051 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -239,6 +296,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		01C000000000000000000050 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				01C000000000000000000101 /* TranslationSessionDraftTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -246,6 +311,11 @@
 			isa = PBXTargetDependency;
 			target = 01A000000000000000000040 /* TranslationPrototype */;
 			targetProxy = 01B000000000000000000090 /* PBXContainerItemProxy */;
+		};
+		01C000000000000000000091 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 01A000000000000000000040 /* TranslationPrototype */;
+			targetProxy = 01C000000000000000000090 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -481,6 +551,58 @@
 			};
 			name = Release;
 		};
+		01C000000000000000000082 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.codex.translationprototype.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TranslationPrototype.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TranslationPrototype";
+			};
+			name = Debug;
+		};
+		01C000000000000000000083 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.codex.translationprototype.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TranslationPrototype.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TranslationPrototype";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -507,6 +629,15 @@
 			buildConfigurations = (
 				01B000000000000000000082 /* Debug */,
 				01B000000000000000000083 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		01C000000000000000000070 /* Build configuration list for PBXNativeTarget "TranslationPrototypeTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				01C000000000000000000082 /* Debug */,
+				01C000000000000000000083 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

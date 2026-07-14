@@ -76,6 +76,12 @@ struct Language: Identifiable, Equatable, Hashable {
     ]
 }
 
+struct TextTranslationDraft {
+    var sourceText: String
+    var sourceLanguage: Language
+    var targetLanguage: Language
+}
+
 struct ConversationTurn: Identifiable {
     enum Speaker {
         case source
@@ -234,6 +240,26 @@ final class TranslationSession {
             "\(translatedText) (更自然)",
             "\(translatedText) (更简洁)"
         ]
+    }
+
+    func makeTextDraft() -> TextTranslationDraft {
+        TextTranslationDraft(
+            sourceText: sourceText,
+            sourceLanguage: sourceLanguage,
+            targetLanguage: targetLanguage
+        )
+    }
+
+    func commitAndTranslate(_ draft: TextTranslationDraft) {
+        sourceText = draft.sourceText
+        sourceLanguage = draft.sourceLanguage
+        targetLanguage = draft.targetLanguage
+        refreshTranslation()
+    }
+
+    func clearCurrent() {
+        sourceText = ""
+        refreshTranslation()
     }
 
     func refreshTranslation() {
