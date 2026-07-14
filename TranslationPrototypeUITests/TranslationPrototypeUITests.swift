@@ -13,10 +13,13 @@ final class TranslationPrototypeUITests: XCTestCase {
         let translationResult = element("translation-result", in: app)
         let clearButton = element("clear-source-button", in: app)
         let dictationButton = element("dictation-button", in: app)
+        let finishButton = element("finish-source-editing-button", in: app)
 
         XCTAssertTrue(sourceEditor.waitForExistence(timeout: 3))
         XCTAssertTrue(translationResult.waitForExistence(timeout: 3))
         XCTAssertTrue(clearButton.waitForExistence(timeout: 3))
+        XCTAssertTrue(waitUntilAbsent(finishButton))
+        XCTAssertEqual(elementCount("finish-source-editing-button", in: app), 0)
         clearButton.tap()
 
         XCTAssertTrue(wait(for: NSPredicate(format: "value == %@", ""), on: sourceEditor))
@@ -26,7 +29,15 @@ final class TranslationPrototypeUITests: XCTestCase {
         dictationButton.tap()
 
         XCTAssertTrue(wait(for: NSPredicate(format: "value == %@", "你好"), on: sourceEditor, timeout: 4))
+        XCTAssertTrue(finishButton.waitForExistence(timeout: 2))
+        XCTAssertEqual(finishButton.label, "完成并翻译")
+        XCTAssertTrue(waitUntilAbsent(translationResult))
+        finishButton.tap()
+
+        XCTAssertTrue(translationResult.waitForExistence(timeout: 3))
         XCTAssertTrue(wait(for: NSPredicate(format: "enabled == YES"), on: translationResult))
+        XCTAssertTrue(waitUntilAbsent(finishButton))
+        XCTAssertEqual(elementCount("finish-source-editing-button", in: app), 0)
 
         let favoriteButton = element("favorite-result-button", in: app)
         XCTAssertTrue(favoriteButton.waitForExistence(timeout: 2))
@@ -52,6 +63,232 @@ final class TranslationPrototypeUITests: XCTestCase {
         XCTAssertTrue(sourceEditor.waitForExistence(timeout: 3))
         XCTAssertTrue(wait(for: NSPredicate(format: "value == %@", "你好"), on: sourceEditor))
         XCTAssertTrue(translationResult.isEnabled)
+    }
+
+    @MainActor
+    func testTextDraftWaitsForFinishBeforeTranslatingAndRestoresNavigation() throws {
+        let app = launchApp(mode: "text")
+
+        let sourceEditor = element("source-text-editor", in: app)
+        let translationResult = element("translation-result", in: app)
+        let clearButton = element("clear-source-button", in: app)
+        let finishButton = element("finish-source-editing-button", in: app)
+        let sourceLanguageButton = element("language-pair-source-button", in: app)
+        let swapLanguageButton = element("language-pair-swap-button", in: app)
+        let targetLanguageButton = element("language-pair-target-button", in: app)
+        let tabBar = app.tabBars.firstMatch
+        let textMode = tabBar.buttons["文字"]
+
+        XCTAssertTrue(sourceEditor.waitForExistence(timeout: 3))
+        XCTAssertTrue(translationResult.waitForExistence(timeout: 3))
+        XCTAssertTrue(tabBar.waitForExistence(timeout: 3))
+        XCTAssertTrue(waitUntilAbsent(finishButton))
+        XCTAssertEqual(elementCount("finish-source-editing-button", in: app), 0)
+
+        sourceEditor.tap()
+
+        XCTAssertTrue(finishButton.waitForExistence(timeout: 2))
+        XCTAssertEqual(finishButton.label, "完成并翻译")
+        XCTAssertEqual(elementCount("finish-source-editing-button", in: app), 1)
+        XCTAssertTrue(waitUntilAbsent(tabBar))
+        XCTAssertTrue(waitUntilAbsent(translationResult))
+
+        finishButton.tap()
+
+        XCTAssertTrue(translationResult.waitForExistence(timeout: 3))
+        XCTAssertTrue(wait(
+            for: NSPredicate(
+                format: "value == %@",
+                "The sunset is especially beautiful today — I'd love to take a walk along the beach with you."
+            ),
+            on: translationResult
+        ))
+        XCTAssertTrue(tabBar.waitForExistence(timeout: 3))
+        XCTAssertTrue(textMode.waitForExistence(timeout: 2))
+        XCTAssertTrue(waitUntilSelected(textMode))
+        XCTAssertTrue(wait(
+            for: NSPredicate(
+                format: "value == %@",
+                "今天的晚霞特别好看，我想和你一起去海边走走。"
+            ),
+            on: sourceEditor
+        ))
+        XCTAssertTrue(waitUntilAbsent(finishButton))
+        XCTAssertEqual(elementCount("finish-source-editing-button", in: app), 0)
+
+        sourceEditor.tap()
+
+        XCTAssertTrue(finishButton.waitForExistence(timeout: 2))
+        XCTAssertTrue(waitUntilHittable(finishButton))
+        XCTAssertEqual(elementCount("finish-source-editing-button", in: app), 1)
+        XCTAssertTrue(waitUntilAbsent(tabBar))
+        XCTAssertTrue(waitUntilAbsent(translationResult))
+
+        XCTAssertTrue(clearButton.waitForExistence(timeout: 2))
+        clearButton.tap()
+        XCTAssertTrue(wait(for: NSPredicate(format: "value == %@", ""), on: sourceEditor))
+
+        sourceEditor.typeText("First line\nSecond line")
+        XCTAssertTrue(wait(
+            for: NSPredicate(format: "value == %@", "First line\nSecond line"),
+            on: sourceEditor
+        ))
+        XCTAssertTrue(finishButton.exists)
+        XCTAssertTrue(waitUntilAbsent(tabBar))
+        XCTAssertTrue(waitUntilAbsent(translationResult))
+
+        clearButton.tap()
+        XCTAssertTrue(wait(for: NSPredicate(format: "value == %@", ""), on: sourceEditor))
+
+        sourceEditor.typeText("Good morning")
+        XCTAssertTrue(wait(for: NSPredicate(format: "value == %@", "Good morning"), on: sourceEditor))
+        XCTAssertTrue(waitUntilAbsent(translationResult))
+        captureScreenshot(named: "text-draft-keyboard", of: app)
+
+        XCTAssertTrue(targetLanguageButton.waitForExistence(timeout: 2))
+        targetLanguageButton.tap()
+
+        XCTAssertTrue(app.staticTexts["选择语言"].waitForExistence(timeout: 3))
+        let japanese = element("languagePicker.language.ja", in: app)
+        XCTAssertTrue(japanese.waitForExistence(timeout: 3))
+        japanese.tap()
+
+        XCTAssertFalse(app.staticTexts["选择语言"].waitForExistence(timeout: 2))
+        XCTAssertTrue(finishButton.waitForExistence(timeout: 2))
+        XCTAssertTrue(waitUntilHittable(finishButton))
+        XCTAssertEqual(elementCount("finish-source-editing-button", in: app), 1)
+        XCTAssertTrue(wait(for: NSPredicate(format: "value == %@", "Good morning"), on: sourceEditor))
+        sourceEditor.typeText("!")
+        XCTAssertTrue(wait(for: NSPredicate(format: "value == %@", "Good morning!"), on: sourceEditor))
+        XCTAssertTrue(wait(for: NSPredicate(format: "label == %@", "中文"), on: sourceLanguageButton))
+        XCTAssertTrue(wait(for: NSPredicate(format: "label == %@", "日本語"), on: targetLanguageButton))
+        XCTAssertTrue(waitUntilAbsent(tabBar))
+        XCTAssertTrue(waitUntilAbsent(translationResult))
+
+        XCTAssertTrue(swapLanguageButton.waitForExistence(timeout: 2))
+        swapLanguageButton.tap()
+        XCTAssertTrue(wait(for: NSPredicate(format: "label == %@", "日本語"), on: sourceLanguageButton))
+        XCTAssertTrue(wait(for: NSPredicate(format: "label == %@", "中文"), on: targetLanguageButton))
+        XCTAssertTrue(wait(for: NSPredicate(format: "value == %@", "Good morning!"), on: sourceEditor))
+        XCTAssertTrue(waitUntilAbsent(translationResult))
+
+        swapLanguageButton.tap()
+        XCTAssertTrue(wait(for: NSPredicate(format: "label == %@", "中文"), on: sourceLanguageButton))
+        XCTAssertTrue(wait(for: NSPredicate(format: "label == %@", "日本語"), on: targetLanguageButton))
+        XCTAssertTrue(wait(for: NSPredicate(format: "value == %@", "Good morning!"), on: sourceEditor))
+        XCTAssertTrue(waitUntilAbsent(tabBar))
+        XCTAssertTrue(waitUntilAbsent(translationResult))
+        captureScreenshot(named: "text-draft-focused", of: app)
+
+        finishButton.tap()
+
+        XCTAssertTrue(translationResult.waitForExistence(timeout: 3))
+        XCTAssertTrue(wait(for: NSPredicate(format: "enabled == YES"), on: translationResult))
+        XCTAssertTrue(wait(
+            for: NSPredicate(format: "value == %@", "「Good morning!」の自然な翻訳"),
+            on: translationResult
+        ))
+        XCTAssertTrue(tabBar.waitForExistence(timeout: 3))
+
+        XCTAssertTrue(textMode.waitForExistence(timeout: 2))
+        XCTAssertTrue(waitUntilSelected(textMode))
+
+        XCTAssertTrue(wait(for: NSPredicate(format: "label == %@", "日本語"), on: targetLanguageButton))
+        XCTAssertTrue(waitUntilAbsent(finishButton))
+        XCTAssertEqual(elementCount("finish-source-editing-button", in: app), 0)
+        captureScreenshot(named: "text-draft-result", of: app)
+    }
+
+    @MainActor
+    func testReduceMotionTextEntryCompletesInStableResultState() throws {
+        let app = launchApp(mode: "text", reduceMotion: true)
+
+        let sourceEditor = element("source-text-editor", in: app)
+        let translationResult = element("translation-result", in: app)
+        let finishButton = element("finish-source-editing-button", in: app)
+        let historyButton = element("history-button", in: app)
+        let tabBar = app.tabBars.firstMatch
+        let textMode = tabBar.buttons["文字"]
+
+        XCTAssertTrue(sourceEditor.waitForExistence(timeout: 3))
+        XCTAssertTrue(translationResult.waitForExistence(timeout: 3))
+        XCTAssertTrue(tabBar.waitForExistence(timeout: 3))
+        XCTAssertTrue(waitUntilAbsent(finishButton))
+        XCTAssertEqual(elementCount("finish-source-editing-button", in: app), 0)
+
+        sourceEditor.tap()
+
+        XCTAssertTrue(finishButton.waitForExistence(timeout: 2))
+        XCTAssertEqual(finishButton.label, "完成并翻译")
+        XCTAssertEqual(elementCount("finish-source-editing-button", in: app), 1)
+        XCTAssertTrue(waitUntilAbsent(translationResult))
+        XCTAssertTrue(waitUntilAbsent(tabBar))
+
+        finishButton.tap()
+
+        XCTAssertTrue(translationResult.waitForExistence(timeout: 3))
+        XCTAssertTrue(wait(
+            for: NSPredicate(
+                format: "value == %@",
+                "The sunset is especially beautiful today — I'd love to take a walk along the beach with you."
+            ),
+            on: translationResult
+        ))
+        XCTAssertTrue(wait(
+            for: NSPredicate(
+                format: "value == %@",
+                "今天的晚霞特别好看，我想和你一起去海边走走。"
+            ),
+            on: sourceEditor
+        ))
+        XCTAssertTrue(tabBar.waitForExistence(timeout: 3))
+        XCTAssertTrue(textMode.waitForExistence(timeout: 2))
+        XCTAssertTrue(waitUntilSelected(textMode))
+        XCTAssertTrue(historyButton.waitForExistence(timeout: 2))
+        XCTAssertTrue(waitUntilAbsent(finishButton))
+        XCTAssertEqual(elementCount("finish-source-editing-button", in: app), 0)
+    }
+
+    @MainActor
+    func testTextEntryPaperMotionRendersIntermediateFrames() throws {
+        let app = launchApp(mode: "text", motionProbe: true)
+        let probe = element("text-entry-motion-probe", in: app)
+        let sourceEditor = element("source-text-editor", in: app)
+        let finishButton = element("finish-source-editing-button", in: app)
+
+        XCTAssertTrue(probe.waitForExistence(timeout: 3))
+        XCTAssertTrue(
+            wait(
+                for: NSPredicate(format: "value CONTAINS %@", "reduce=0"),
+                on: probe
+            ),
+            "Probe: \(String(describing: probe.value))"
+        )
+        XCTAssertTrue(sourceEditor.waitForExistence(timeout: 3))
+
+        sourceEditor.tap()
+
+        XCTAssertTrue(
+            wait(
+                for: NSPredicate(format: "value CONTAINS %@", "enter-pass=1"),
+                on: probe,
+                timeout: 4
+            ),
+            "Probe: \(String(describing: probe.value))"
+        )
+        XCTAssertTrue(finishButton.waitForExistence(timeout: 2))
+        XCTAssertTrue(waitUntilHittable(finishButton))
+
+        finishButton.tap()
+
+        XCTAssertTrue(
+            wait(
+                for: NSPredicate(format: "value CONTAINS %@", "exit-pass=1"),
+                on: probe,
+                timeout: 4
+            ),
+            "Probe: \(String(describing: probe.value))"
+        )
     }
 
     @MainActor
@@ -181,7 +418,12 @@ final class TranslationPrototypeUITests: XCTestCase {
     }
 
     @MainActor
-    private func launchApp(mode: String, sheet: String? = nil) -> XCUIApplication {
+    private func launchApp(
+        mode: String,
+        sheet: String? = nil,
+        reduceMotion: Bool = false,
+        motionProbe: Bool = false
+    ) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = [
             "-AppleLanguages", "(zh-Hans)",
@@ -190,6 +432,15 @@ final class TranslationPrototypeUITests: XCTestCase {
         ]
         if let sheet {
             app.launchArguments.append(contentsOf: ["--prototype-sheet", sheet])
+        }
+        if reduceMotion {
+            app.launchArguments.append("--ui-testing-reduce-motion")
+        }
+        if motionProbe {
+            app.launchArguments.append("--ui-testing-text-entry-motion-probe")
+        }
+        addTeardownBlock {
+            app.terminate()
         }
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 5))
@@ -245,6 +496,18 @@ final class TranslationPrototypeUITests: XCTestCase {
     @MainActor
     private func waitUntilHittable(_ element: XCUIElement) -> Bool {
         wait(for: NSPredicate(format: "hittable == YES"), on: element)
+    }
+
+    @MainActor
+    private func waitUntilAbsent(_ element: XCUIElement) -> Bool {
+        wait(for: NSPredicate(format: "exists == NO"), on: element)
+    }
+
+    @MainActor
+    private func elementCount(_ identifier: String, in app: XCUIApplication) -> Int {
+        app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == %@", identifier))
+            .count
     }
 
     @MainActor

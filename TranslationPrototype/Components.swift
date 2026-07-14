@@ -35,6 +35,7 @@ struct LanguagePairBar: View {
                     .padding(.vertical, 11)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("language-pair-source-button")
 
             Button(action: onSwap) {
                 Image(systemName: "arrow.up.arrow.down")
@@ -46,6 +47,7 @@ struct LanguagePairBar: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(Text("交换语言"))
+            .accessibilityIdentifier("language-pair-swap-button")
 
             Button(action: onTargetTap) {
                 Text(target.nativeName)
@@ -55,6 +57,7 @@ struct LanguagePairBar: View {
                     .padding(.vertical, 11)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("language-pair-target-button")
         }
         .padding(8)
         .background(.white, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
