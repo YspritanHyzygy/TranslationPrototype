@@ -117,12 +117,13 @@ xcodebuild \
 
 当前实现删除全部覆盖层与阶段编排（净删约 900 行），改为对真实卡片的直接布局动画：
 
-- 唯一状态源是草稿是否存在。点击原文在同一个事务里建立草稿，`.spring(duration: 0.45, bounce: 0.12)` 驱动真实卡片高度从静息值展开到 `max(260, viewport - 32)`；键盘在下一个 runloop 请求焦点、与展开并行升起。SwiftUI 在渲染树逐帧插值各视图 frame，卡面 `TextEntrySurfaceShape` 每帧重算路径，22pt 连续圆角在缩放中不变形。
-- tab bar 隐藏、键盘安全区提交都会改变目标高度，弹簧带速度重定向，不需要等待或猜测延迟；转场全程可点按、可打断（展开途中点对勾会平滑反向收回）。
-- 完成提交以 `.smooth(duration: 0.32)` 收回；结果区以约 0.16 秒透明度 transition 在纸面（`zIndex` 更高）之下淡出/淡入，位置由布局动画自然带动。阴影与描边直接挂在卡面上，不再需要静态双表面交叉淡化。
+- 唯一状态源是草稿是否存在。点击原文在同一个事务里建立草稿，`.spring(duration: 0.45, bounce: 0.12)` 驱动真实卡片高度从静息值一次展开到最终纸面；键盘在下一个 runloop 请求焦点、与展开并行升起。SwiftUI 在渲染树逐帧插值各视图 frame，卡面 `TextEntrySurfaceShape` 每帧重算路径，22pt 连续圆角在缩放中不变形。
+- **编辑高度不依赖容器底部安全区。** 对模拟器实录的逐帧分析显示，系统 tab bar 的安全区插入量是异步提交的：隐藏后约 700ms 才释放、恢复时立即插回，且两次都以内容快照交叉淡化的方式落地——任何跟随该安全区的布局都会先停在中间高度、再突跳约 47pt 并出现整卡残影/闪变（旧覆盖层方案同样受害于此）。现在滚动容器 `ignoresSafeArea(.container, edges: .bottom)`，编辑高度由「扩展视口 − 键盘裁切 − 窗口级底部安全区」计算：窗口 inset 不随 tab bar 变化，键盘仍是被尊重的独立安全区域（软件键盘升起时卡片底边平滑跟随键盘顶，弹簧带速度重定向）。tab bar 的迟到提交只再改变一个不可见的滚动边距，展开一步到位、退出无闪变。
+- 完成提交以 `.smooth(duration: 0.32)` 收回；结果区以约 0.16 秒透明度 transition 在纸面（`zIndex` 更高）之下淡出/淡入，位置由布局动画自然带动。阴影与描边直接挂在卡面上，不再需要静态双表面交叉淡化。转场全程可点按、可打断（展开途中点对勾会平滑反向收回）。
+- 提交触感由复用且预热（`prepare()`）的 `UIImpactFeedbackGenerator` 在动画事务提交后触发，避免冷启动触感引擎在转场首帧阻塞主线程。
 - DEBUG 动画探针改由真实卡面 Shape 的 `path(in:)` 逐帧采样底边轨迹，仍要求有效位移、起点/中间值/终点齐备与单调性；`onGeometryChange` 只在布局目标提交时回调、观察不到逐帧插值，故不用于采样。探针完全置于 `#if DEBUG`。
 - Reduce Motion 下布局直接切换终态，仅保留约 0.12 秒透明度淡化；草稿、“完成后翻译”、语言选择、听写和系统 tab bar 语义不变。
 
-本轮验收环境为 Xcode 27.0、iPhone 17 Pro / iOS 27.0 Simulator：Debug 通用构建成功、0 errors；完整 UI 套件 8 passed、0 failed、0 skipped（约 230 秒），其中动画实际路径专项由真实卡面 Shape 采样的逐帧轨迹通过（起点/中间值/终点齐备、单调）；草稿模型单元测试 2 passed、0 failed。真机 Animation Hitches / Time Profiler、真正硬件键盘、动态字体与 VoiceOver 的最终感知验收仍需设备在线后完成。
+本轮验收环境为 Xcode 27.0、iPhone 17 Pro / iOS 27.0 Simulator：Debug 通用构建成功、0 errors；完整 UI 套件 8 passed、0 failed、0 skipped，其中动画实际路径专项由真实卡面 Shape 采样的逐帧轨迹通过（起点/中间值/终点齐备、单调）；草稿模型单元测试 2 passed、0 failed。另以 `simctl recordVideo` 对克隆设备实录草稿全流程并逐帧测量卡片底边：进入约 25 个连续中间帧单段直达终态、停稳后无任何后跳，退出约 30 帧连续收回、首帧无整卡闪变。真机 Animation Hitches / Time Profiler、真正硬件键盘、动态字体与 VoiceOver 的最终感知验收仍需设备在线后完成。
 
 最终视觉对照、修正记录与测试证据见 `design-qa.md`。

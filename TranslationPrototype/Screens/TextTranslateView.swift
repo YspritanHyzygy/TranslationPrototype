@@ -18,6 +18,7 @@ struct TextTranslateView: View {
     @State private var presentedSheet: TextTranslateSheet?
     @State private var toastText: String?
     @State private var speechSynthesizer = AVSpeechSynthesizer()
+    @State private var impactFeedback = UIImpactFeedbackGenerator(style: .light)
     @State private var pendingFocusTask: Task<Void, Never>?
     @State private var transitionGeneration = 0
     @State private var transitionSignpostState: OSSignpostIntervalState?
@@ -30,23 +31,39 @@ struct TextTranslateView: View {
             header
             languagePairBar
 
-            GeometryReader { proxy in
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 14) {
-                        sourceCard
-                            .frame(height: focusedSourceCardHeight(in: proxy.size.height))
-                            .zIndex(1)
+            // The tab bar's safe-area contribution is applied asynchronously by
+            // the system (released long after the hide begins, re-inserted via
+            // a content crossfade on show). Layout must not depend on it, or
+            // the card visibly jumps and crossfades mid-transition. The inner
+            // reader ignores the container's bottom inset so the editing
+            // height is stable from the first frame; the outer reader only
+            // feeds an invisible scroll margin that keeps idle content clear
+            // of the floating bar.
+            GeometryReader { insetProxy in
+                GeometryReader { expandedProxy in
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 14) {
+                            sourceCard
+                                .frame(height: focusedSourceCardHeight(expandedIn: expandedProxy))
+                                .zIndex(1)
 
-                        if !isEditingSource {
-                            resultGroup
-                                .transition(.opacity.animation(motionProfile.contentFade))
+                            if !isEditingSource {
+                                resultGroup
+                                    .transition(.opacity.animation(motionProfile.contentFade))
+                            }
                         }
+                        .padding(.horizontal, 18)
+                        .padding(.top, 16)
+                        .padding(.bottom, 16)
                     }
-                    .padding(.horizontal, 18)
-                    .padding(.top, 16)
-                    .padding(.bottom, 16)
+                    .scrollDisabled(isEditingSource)
+                    .contentMargins(
+                        .bottom,
+                        max(0, expandedProxy.size.height - insetProxy.size.height),
+                        for: .scrollContent
+                    )
                 }
-                .scrollDisabled(isEditingSource)
+                .ignoresSafeArea(.container, edges: .bottom)
             }
         }
         .background(AppTheme.paper.ignoresSafeArea())
@@ -68,6 +85,11 @@ struct TextTranslateView: View {
         }
         .sheet(item: $presentedSheet, onDismiss: restoreDraftFocusIfNeeded) { destination in
             sheetView(for: destination)
+        }
+        .onAppear {
+            // Warm the haptic engine off the transition's critical path; a
+            // cold first impactOccurred() can stall the main thread.
+            impactFeedback.prepare()
         }
         .onDisappear {
             cancelPendingFocus()
@@ -388,9 +410,28 @@ struct TextTranslateView: View {
         }
     }
 
-    private func focusedSourceCardHeight(in viewportHeight: CGFloat) -> CGFloat? {
+    private func focusedSourceCardHeight(expandedIn proxy: GeometryProxy) -> CGFloat? {
         guard isEditingSource else { return nil }
-        return max(260, viewportHeight - 32)
+        let metrics = windowMetrics
+        // The expanded viewport reaches the physical screen bottom unless the
+        // keyboard (still a respected safe-area region) cuts it short.
+        let keyboardCut = max(0, metrics.height - proxy.frame(in: .global).maxY)
+        // Clear the window's bottom safe area (home indicator plus any system
+        // reserve) when no keyboard covers it; sit 16pt above the keyboard
+        // when one does. The window-level inset is stable regardless of the
+        // tab bar, which is the whole point.
+        let bottomClearance = max(16, metrics.bottomInset - keyboardCut)
+        return max(260, proxy.size.height - 16 - bottomClearance)
+    }
+
+    private var windowMetrics: (height: CGFloat, bottomInset: CGFloat) {
+        guard let window = UIApplication.shared.connectedScenes
+            .lazy
+            .compactMap({ $0 as? UIWindowScene })
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)
+        else { return (0, 0) }
+        return (window.bounds.height, window.safeAreaInsets.bottom)
     }
 
     private func beginEditingIfNeeded() {
@@ -442,7 +483,6 @@ struct TextTranslateView: View {
         beginTransitionSignpost()
         beginMotionProbe(direction: .exiting)
         sourceIsFocused = false
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
 
         if motionProfile.reducesMotion {
             withNoAnimation {
@@ -461,6 +501,7 @@ struct TextTranslateView: View {
                 handleExitCompletion(generation: generation)
             }
         }
+        impactFeedback.impactOccurred()
     }
 
     private func handleExitCompletion(generation: Int) {
@@ -500,7 +541,7 @@ struct TextTranslateView: View {
         currentDraft.sourceLanguage = currentDraft.targetLanguage
         currentDraft.targetLanguage = previousSource
         draft = currentDraft
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        impactFeedback.impactOccurred()
     }
 
     private func draftLanguageBinding(for role: LanguageSelectionRole) -> Binding<Language> {
