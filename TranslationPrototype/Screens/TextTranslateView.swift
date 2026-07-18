@@ -1,4 +1,5 @@
 import AVFoundation
+import Combine
 import OSLog
 import SwiftUI
 import UIKit
@@ -15,6 +16,9 @@ struct TextTranslateView: View {
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @FocusState private var sourceIsFocused: Bool
     @State private var draft: TextTranslationDraft?
+    @State private var keyboardOverlap: CGFloat = 0
+    @State private var expansionIsPrimed = false
+    @State private var pendingPrimeTask: Task<Void, Never>?
     @State private var isDictating = false
     @State private var pendingAutoSpeak = false
     @State private var presentedSheet: TextTranslateSheet?
@@ -35,12 +39,17 @@ struct TextTranslateView: View {
 
             // The tab bar's safe-area contribution is applied asynchronously by
             // the system (released long after the hide begins, re-inserted via
-            // a content crossfade on show). Layout must not depend on it, or
-            // the card visibly jumps and crossfades mid-transition. The inner
-            // reader ignores the container's bottom inset so the editing
-            // height is stable from the first frame; the outer reader only
-            // feeds an invisible scroll margin that keeps idle content clear
-            // of the floating bar.
+            // a content crossfade on show), and the keyboard's region animates
+            // under its own transaction, re-running layout every frame it
+            // moves. The editing height must not depend on either, or its
+            // .frame(height:) is rewritten mid-flight and fights the expand
+            // spring (degenerate intermediate layouts included). Both readers
+            // sit behind the keyboard region — its height arrives once via
+            // notification instead (keyboardOverlap) — and the inner reader
+            // also ignores the container's bottom inset so the editing height
+            // is stable from the first frame; the outer reader only feeds an
+            // invisible scroll margin that keeps idle content clear of the
+            // floating bar.
             GeometryReader { insetProxy in
                 GeometryReader { expandedProxy in
                     ScrollView(showsIndicators: false) {
@@ -67,6 +76,7 @@ struct TextTranslateView: View {
                 }
                 .ignoresSafeArea(.container, edges: .bottom)
             }
+            .ignoresSafeArea(.keyboard, edges: .bottom)
         }
         .background(AppTheme.paper.ignoresSafeArea())
         .overlay(alignment: .top) {
@@ -95,8 +105,25 @@ struct TextTranslateView: View {
         }
         .onDisappear {
             cancelPendingFocus()
+            cancelPendingPrime()
             transitionGeneration &+= 1
             endTransitionSignpost(markStable: false)
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: UIResponder.keyboardWillChangeFrameNotification
+            )
+        ) { notification in
+            updateKeyboardOverlap(from: notification)
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: UIResponder.keyboardWillHideNotification
+            )
+        ) { _ in
+            // willChangeFrame already reports the off-screen end frame on
+            // hide; this is a belt-and-braces reset only.
+            setKeyboardOverlap(0)
         }
         .onChange(of: session.phase) { _, newPhase in
             guard pendingAutoSpeak else { return }
@@ -466,27 +493,95 @@ struct TextTranslateView: View {
     }
 
     private func focusedSourceCardHeight(expandedIn proxy: GeometryProxy) -> CGFloat? {
-        guard isEditingSource else { return nil }
-        let metrics = windowMetrics
-        // The expanded viewport reaches the physical screen bottom unless the
-        // keyboard (still a respected safe-area region) cuts it short.
-        let keyboardCut = max(0, metrics.height - proxy.frame(in: .global).maxY)
-        // Clear the window's bottom safe area (home indicator plus any system
-        // reserve) when no keyboard covers it; sit 16pt above the keyboard
-        // when one does. The window-level inset is stable regardless of the
-        // tab bar, which is the whole point.
-        let bottomClearance = max(16, metrics.bottomInset - keyboardCut)
+        // Expansion waits for the keyboard's end frame (or the short
+        // no-keyboard fallback) before the height spring starts, so the card
+        // aims at its true final height in a single motion instead of
+        // overshooting toward the full viewport and folding back.
+        guard isEditingSource, expansionIsPrimed else { return nil }
+        // The expanded viewport reaches the physical screen bottom (both the
+        // container and keyboard regions are ignored), so the proxy is static
+        // for the whole transition. Sit 16pt above the keyboard when one is
+        // up (keyboardOverlap arrives once per keyboard move, animated), and
+        // otherwise clear the window's bottom safe area (home indicator plus
+        // any system reserve) — a window-level inset that is stable
+        // regardless of the tab bar, which is the whole point.
+        let bottomClearance = max(keyboardOverlap + 16, max(16, windowBottomInset))
         return max(260, proxy.size.height - 16 - bottomClearance)
     }
 
-    private var windowMetrics: (height: CGFloat, bottomInset: CGFloat) {
-        guard let window = UIApplication.shared.connectedScenes
+    private var keyWindow: UIWindow? {
+        UIApplication.shared.connectedScenes
             .lazy
-            .compactMap({ $0 as? UIWindowScene })
+            .compactMap { $0 as? UIWindowScene }
             .flatMap(\.windows)
             .first(where: \.isKeyWindow)
-        else { return (0, 0) }
-        return (window.bounds.height, window.safeAreaInsets.bottom)
+    }
+
+    private var windowBottomInset: CGFloat {
+        keyWindow?.safeAreaInsets.bottom ?? 0
+    }
+
+    private func updateKeyboardOverlap(from notification: Notification) {
+        guard
+            let window = keyWindow,
+            let endFrameValue = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey]
+                as? NSValue
+        else { return }
+        // The end frame arrives in screen coordinates before the keyboard's
+        // animation starts; on hide it slides off-screen with its height
+        // intact, so the overlap must come from minY, not the frame height.
+        let endFrame = window.convert(endFrameValue.cgRectValue, from: window.screen.coordinateSpace)
+        setKeyboardOverlap(max(0, window.bounds.maxY - endFrame.minY))
+    }
+
+    private func setKeyboardOverlap(_ overlap: CGFloat) {
+        // Any keyboard frame decision arriving while the expansion is still
+        // waiting doubles as the primer: overlap and expansion commit in one
+        // transaction, so the spring launches straight at the final height.
+        let primesExpansion = isEditingSource && !expansionIsPrimed
+        guard overlap != keyboardOverlap || primesExpansion else { return }
+        if primesExpansion {
+            cancelPendingPrime()
+        }
+        let updates = {
+            keyboardOverlap = overlap
+            if primesExpansion {
+                expansionIsPrimed = true
+            }
+        }
+        if motionProfile.reducesMotion {
+            withNoAnimation(updates)
+        } else {
+            // A velocity-preserving retarget of the same spring that drives
+            // the card, so the height folds the keyboard in as one motion.
+            withAnimation(motionProfile.expandAnimation, updates)
+        }
+    }
+
+    private func scheduleExpansionPrimeFallback() {
+        cancelPendingPrime()
+        pendingPrimeTask = Task { @MainActor in
+            // No keyboard frame within a beat (hardware keyboard, or none at
+            // all): expand to the full no-keyboard height on our own.
+            try? await Task.sleep(nanoseconds: 150_000_000)
+            guard !Task.isCancelled else { return }
+            pendingPrimeTask = nil
+            guard isEditingSource, !expansionIsPrimed else { return }
+            if motionProfile.reducesMotion {
+                withNoAnimation {
+                    expansionIsPrimed = true
+                }
+            } else {
+                withAnimation(motionProfile.expandAnimation) {
+                    expansionIsPrimed = true
+                }
+            }
+        }
+    }
+
+    private func cancelPendingPrime() {
+        pendingPrimeTask?.cancel()
+        pendingPrimeTask = nil
     }
 
     private func beginEditingIfNeeded() {
@@ -521,6 +616,7 @@ struct TextTranslateView: View {
         }
 
         scheduleSourceFocus(afterNanoseconds: 0)
+        scheduleExpansionPrimeFallback()
     }
 
     private func handleEnterCompletion(generation: Int) {
@@ -535,6 +631,7 @@ struct TextTranslateView: View {
         pendingAutoSpeak = settings.autoSpeaksTranslation
             && !completedDraft.sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         cancelPendingFocus()
+        cancelPendingPrime()
         transitionGeneration &+= 1
         let generation = transitionGeneration
         endTransitionSignpost(markStable: false)
@@ -546,6 +643,7 @@ struct TextTranslateView: View {
             withNoAnimation {
                 session.commitAndTranslate(completedDraft)
                 draft = nil
+                expansionIsPrimed = false
             }
             handleExitCompletion(generation: generation)
         } else {
@@ -555,6 +653,7 @@ struct TextTranslateView: View {
             ) {
                 session.commitAndTranslate(completedDraft)
                 draft = nil
+                expansionIsPrimed = false
             } completion: {
                 handleExitCompletion(generation: generation)
             }
@@ -690,10 +789,11 @@ struct TextTranslateView: View {
         guard motionProbeIsEnabled else { return }
         let id = motionProbeTransitionID
         Task { @MainActor in
-            // The spring's completion can fire early when the keyboard or tab
-            // bar retargets the card's height mid-flight. Give those secondary
-            // layout animations time to settle before freezing the track's
-            // expected end point; geometry samples keep flowing until then.
+            // The keyboard notification retargets the card's height once,
+            // shortly after the transition starts, which can fire the original
+            // transaction's completion early. Give the retargeted spring time
+            // to settle before freezing the track's expected end point;
+            // geometry samples keep flowing until then.
             try? await Task.sleep(nanoseconds: 400_000_000)
             TextEntryMotionProbe.shared.complete(id: id, direction: direction)
         }
