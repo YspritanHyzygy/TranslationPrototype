@@ -81,11 +81,16 @@ struct VoiceConversationView: View {
 
                 Button(action: toggleListening) {
                     ZStack {
-                        if isListening {
+                        if isListening && !hasLiquidGlass {
                             Circle()
                                 .fill(AppTheme.terracotta.opacity(0.16))
                                 .frame(width: 100, height: 100)
                         }
+                        // Maps-style composition: the tinted disc sits inset inside
+                        // the glass circle so the glass reads as a rim ring, and
+                        // disc + ring deform as one unit under the interactive
+                        // drag. A static halo would be left behind by that drag,
+                        // so the glass path drops it.
                         Group {
                             if isProcessing {
                                 ProgressView()
@@ -100,13 +105,12 @@ struct VoiceConversationView: View {
                             }
                         }
                         .frame(width: 84, height: 84)
-                        .liquidGlass(
-                            tint: isListening ? AppTheme.terracotta : AppTheme.muted,
-                            interactive: false,
-                            in: Circle()
-                        ) { content in
+                        .background(
+                            isListening ? AppTheme.terracotta : AppTheme.muted,
+                            in: Circle().inset(by: hasLiquidGlass ? 7 : 0)
+                        )
+                        .liquidGlass(interactive: true, in: Circle()) { content in
                             content
-                                .background(isListening ? AppTheme.terracotta : AppTheme.muted, in: Circle())
                                 .softShadow(radius: 18, y: 8, opacity: 0.24)
                         }
                     }
@@ -130,6 +134,11 @@ struct VoiceConversationView: View {
         .padding(.bottom, 22)
         .frame(maxWidth: .infinity)
         .background(AppTheme.paper.ignoresSafeArea(edges: .bottom))
+    }
+
+    private var hasLiquidGlass: Bool {
+        if #available(iOS 26.0, *) { return true }
+        return false
     }
 
     private var listeningStatus: String {
