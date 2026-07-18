@@ -34,3 +34,33 @@ extension View {
             .softShadow(radius: 8, y: 2, opacity: 0.045)
     }
 }
+
+// MARK: - Liquid Glass (iOS 26+)，iOS 17-25 回退
+
+extension View {
+    /// iOS 26+：交互式液体玻璃，裁剪到 shape，可选着色。
+    /// iOS 17-25：执行 fallback 闭包，原样保留改造前的背景/阴影链。
+    /// 像 background 一样，在 frame/padding 之后调用。
+    @ViewBuilder
+    func liquidGlass<S: Shape, Fallback: View>(
+        tint: Color? = nil,
+        in shape: S,
+        @ViewBuilder fallback: (Self) -> Fallback
+    ) -> some View {
+        if #available(iOS 26.0, *) {
+            glassEffect(.regular.tint(tint).interactive(), in: shape)
+        } else {
+            fallback(self)
+        }
+    }
+
+    /// iOS 26+ 用 GlassEffectContainer 包裹，让邻近/重叠的玻璃形状统一采样融合；早期系统为 no-op。
+    @ViewBuilder
+    func liquidGlassContainer(spacing: CGFloat? = nil) -> some View {
+        if #available(iOS 26.0, *) {
+            GlassEffectContainer(spacing: spacing) { self }
+        } else {
+            self
+        }
+    }
+}

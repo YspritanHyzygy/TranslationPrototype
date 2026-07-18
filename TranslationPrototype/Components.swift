@@ -10,8 +10,11 @@ struct IconCircleButton: View {
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(AppTheme.muted)
                 .frame(width: 38, height: 38)
-                .background(.white, in: Circle())
-                .softShadow(radius: 5, y: 1, opacity: 0.06)
+                .liquidGlass(in: Circle()) { content in
+                    content
+                        .background(.white, in: Circle())
+                        .softShadow(radius: 5, y: 1, opacity: 0.06)
+                }
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(systemName))
@@ -42,8 +45,11 @@ struct LanguagePairBar: View {
                     .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(.white)
                     .frame(width: 42, height: 42)
-                    .background(AppTheme.terracotta, in: Circle())
-                    .softShadow(radius: 10, y: 5, opacity: 0.22)
+                    .liquidGlass(tint: AppTheme.terracotta, in: Circle()) { content in
+                        content
+                            .background(AppTheme.terracotta, in: Circle())
+                            .softShadow(radius: 10, y: 5, opacity: 0.22)
+                    }
             }
             .buttonStyle(.plain)
             .accessibilityLabel(Text("交换语言"))
@@ -146,7 +152,10 @@ struct PrototypeCloseButton: View {
                 .font(.system(size: 15, weight: .bold))
                 .foregroundStyle(AppTheme.muted)
                 .frame(width: 36, height: 36)
-                .background(Color(hex: 0xEDE8DF), in: Circle())
+                .liquidGlass(in: Circle()) { content in
+                    content
+                        .background(Color(hex: 0xEDE8DF), in: Circle())
+                }
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text("关闭"))

@@ -86,20 +86,27 @@ struct VoiceConversationView: View {
                                 .fill(AppTheme.terracotta.opacity(0.16))
                                 .frame(width: 100, height: 100)
                         }
-                        Circle()
-                            .fill(isListening ? AppTheme.terracotta : AppTheme.muted)
-                            .frame(width: 84, height: 84)
-                            .softShadow(radius: 18, y: 8, opacity: 0.24)
-                        if isProcessing {
-                            ProgressView()
-                                .tint(.white)
-                                .controlSize(.large)
-                        } else if isListening {
-                            WaveBars()
-                        } else {
-                            Image(systemName: "mic")
-                                .font(.system(size: 28, weight: .semibold))
-                                .foregroundStyle(.white)
+                        Group {
+                            if isProcessing {
+                                ProgressView()
+                                    .tint(.white)
+                                    .controlSize(.large)
+                            } else if isListening {
+                                WaveBars()
+                            } else {
+                                Image(systemName: "mic")
+                                    .font(.system(size: 28, weight: .semibold))
+                                    .foregroundStyle(.white)
+                            }
+                        }
+                        .frame(width: 84, height: 84)
+                        .liquidGlass(
+                            tint: isListening ? AppTheme.terracotta : AppTheme.muted,
+                            in: Circle()
+                        ) { content in
+                            content
+                                .background(isListening ? AppTheme.terracotta : AppTheme.muted, in: Circle())
+                                .softShadow(radius: 18, y: 8, opacity: 0.24)
                         }
                     }
                     .frame(width: 100, height: 100)
@@ -116,6 +123,7 @@ struct VoiceConversationView: View {
                     label: "使用\(targetLanguage.nativeName)讲话"
                 )
             }
+            .liquidGlassContainer(spacing: 8)
         }
         .padding(.top, 18)
         .padding(.bottom, 22)
@@ -144,7 +152,11 @@ struct VoiceConversationView: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(activeSpeaker == speaker ? AppTheme.terracotta : AppTheme.muted)
                 .frame(width: 54, height: 54)
-                .background(.white, in: Circle())
+                .liquidGlass(in: Circle()) { content in
+                    content
+                        .background(.white, in: Circle())
+                        .softShadow(radius: 7, y: 2, opacity: 0.07)
+                }
                 .overlay {
                     Circle()
                         .stroke(
@@ -152,7 +164,6 @@ struct VoiceConversationView: View {
                             lineWidth: 1.5
                         )
                 }
-                .softShadow(radius: 7, y: 2, opacity: 0.07)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)

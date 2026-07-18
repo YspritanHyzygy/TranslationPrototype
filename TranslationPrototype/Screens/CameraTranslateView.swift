@@ -103,9 +103,12 @@ struct CameraTranslateView: View {
                 .foregroundStyle(.white)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 11)
-                .background(.black.opacity(0.28), in: Capsule())
-                .background(.ultraThinMaterial, in: Capsule())
-                .overlay(Capsule().stroke(.white.opacity(0.18), lineWidth: 0.5))
+                .liquidGlass(in: Capsule()) { content in
+                    content
+                        .background(.black.opacity(0.28), in: Capsule())
+                        .background(.ultraThinMaterial, in: Capsule())
+                        .overlay(Capsule().stroke(.white.opacity(0.18), lineWidth: 0.5))
+                }
             }
             .buttonStyle(.plain)
             .accessibilityLabel("选择翻译语言")
@@ -121,9 +124,12 @@ struct CameraTranslateView: View {
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(isExposureLocked ? Color.yellow : Color.white)
                     .frame(width: 42, height: 42)
-                    .background(.black.opacity(isExposureLocked ? 0.42 : 0.28), in: Circle())
-                    .background(.ultraThinMaterial, in: Circle())
-                    .overlay(Circle().stroke(.white.opacity(0.18), lineWidth: 0.5))
+                    .liquidGlass(in: Circle()) { content in
+                        content
+                            .background(.black.opacity(isExposureLocked ? 0.42 : 0.28), in: Circle())
+                            .background(.ultraThinMaterial, in: Circle())
+                            .overlay(Circle().stroke(.white.opacity(0.18), lineWidth: 0.5))
+                    }
             }
             .buttonStyle(.plain)
             .accessibilityLabel("曝光锁定")
@@ -131,6 +137,7 @@ struct CameraTranslateView: View {
             .accessibilityHint("轻点切换自动曝光和曝光锁定")
             .accessibilityIdentifier("camera.exposureButton")
         }
+        .liquidGlassContainer()
     }
 
     private var recognitionStack: some View {
@@ -260,7 +267,10 @@ struct CameraTranslateView: View {
                     .font(.system(size: 21, weight: .bold))
                     .foregroundStyle(isFlashOn ? Color.yellow : Color.white)
                     .frame(width: 46, height: 46)
-                    .background(.white.opacity(isFlashOn ? 0.24 : 0.16), in: Circle())
+                    .liquidGlass(in: Circle()) { content in
+                        content
+                            .background(.white.opacity(isFlashOn ? 0.24 : 0.16), in: Circle())
+                    }
             }
             .buttonStyle(.plain)
             .accessibilityLabel("闪光灯")

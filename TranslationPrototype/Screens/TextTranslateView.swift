@@ -108,42 +108,40 @@ struct TextTranslateView: View {
 
             Spacer()
 
+            // Glass shapes render through the shared container and ignore
+            // ancestor opacity, so the two states swap structurally; the
+            // transitions reproduce the old opacity/scale crossfade curves.
             ZStack(alignment: .trailing) {
-                HStack(spacing: 10) {
-                    IconCircleButton(systemName: "clock", action: onHistory)
-                        .accessibilityLabel("历史记录")
-                        .accessibilityIdentifier("history-button")
-                    IconCircleButton(systemName: "slider.horizontal.3", action: onSettings)
-                        .accessibilityLabel("语言设置")
-                        .accessibilityIdentifier("settings-button")
+                if isEditingSource {
+                    Button(action: finishEditingAndTranslate) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 46, height: 46)
+                            .liquidGlass(tint: AppTheme.terracotta, in: Circle()) { content in
+                                content
+                                    .background(AppTheme.terracotta, in: Circle())
+                                    .softShadow(radius: 9, y: 4, opacity: 0.2)
+                            }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("完成并翻译")
+                    .accessibilityHint("提交当前文字并返回翻译结果")
+                    .accessibilityIdentifier("finish-source-editing-button")
+                    .transition(motionProfile.finishButtonTransition)
+                } else {
+                    HStack(spacing: 10) {
+                        IconCircleButton(systemName: "clock", action: onHistory)
+                            .accessibilityLabel("历史记录")
+                            .accessibilityIdentifier("history-button")
+                        IconCircleButton(systemName: "slider.horizontal.3", action: onSettings)
+                            .accessibilityLabel("语言设置")
+                            .accessibilityIdentifier("settings-button")
+                    }
+                    .transition(.opacity.animation(motionProfile.headerFade))
                 }
-                .opacity(isEditingSource ? 0 : 1)
-                .animation(motionProfile.headerFade, value: isEditingSource)
-                .allowsHitTesting(!isEditingSource)
-                .accessibilityHidden(isEditingSource)
-
-                Button(action: finishEditingAndTranslate) {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 46, height: 46)
-                        .background(AppTheme.terracotta, in: Circle())
-                        .softShadow(radius: 9, y: 4, opacity: 0.2)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("完成并翻译")
-                .accessibilityHint("提交当前文字并返回翻译结果")
-                .accessibilityIdentifier(
-                    isEditingSource
-                        ? "finish-source-editing-button"
-                        : "finish-source-editing-button-hidden"
-                )
-                .opacity(isEditingSource ? 1 : 0)
-                .scaleEffect(motionProfile.finishButtonScale(isEditing: isEditingSource))
-                .animation(motionProfile.finishButtonAnimation, value: isEditingSource)
-                .allowsHitTesting(isEditingSource)
-                .accessibilityHidden(!isEditingSource)
             }
+            .liquidGlassContainer(spacing: 2)
             .frame(width: 102, height: 46, alignment: .trailing)
         }
         .padding(.horizontal, 22)
@@ -744,9 +742,12 @@ private struct TextEntryMotionProfile {
             : .spring(duration: 0.30, bounce: 0.22).delay(0.04)
     }
 
-    func finishButtonScale(isEditing: Bool) -> CGFloat {
-        guard !reducesMotion else { return 1 }
-        return isEditing ? 1 : 0.84
+    var finishButtonTransition: AnyTransition {
+        guard !reducesMotion else {
+            return .opacity.animation(finishButtonAnimation)
+        }
+        return .opacity.combined(with: .scale(scale: 0.84))
+            .animation(finishButtonAnimation)
     }
 }
 
