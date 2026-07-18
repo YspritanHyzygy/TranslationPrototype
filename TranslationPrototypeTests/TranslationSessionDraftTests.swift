@@ -227,6 +227,34 @@ final class TranslationSessionDraftTests: XCTestCase {
     }
 
     @MainActor
+    func testRepeatedTranslationHitsCacheWithoutSecondServiceCall() async {
+        let counter = CallCounter()
+        let service = MockTranslationService { _ in
+            await counter.increment()
+            return TranslationResult(text: "Hello", detectedLanguage: nil, alternatives: ["Hi"])
+        }
+        let session = TranslationSession(settings: makeSettings(), service: service)
+        var draft = session.makeTextDraft()
+        draft.sourceText = "你好"
+
+        session.commitAndTranslate(draft)
+        await session.translationTask?.value
+        XCTAssertEqual(session.translatedText, "Hello")
+
+        session.clearCurrent()
+        XCTAssertTrue(session.translatedText.isEmpty)
+
+        // 相同引擎、语言对与原文：直接命中缓存，同步出结果，不再调用服务。
+        session.commitAndTranslate(draft)
+        XCTAssertNil(session.translationTask)
+        XCTAssertEqual(session.phase, .idle)
+        XCTAssertEqual(session.translatedText, "Hello")
+        XCTAssertEqual(session.translationCandidates, ["Hello", "Hi"])
+        let callCount = await counter.count
+        XCTAssertEqual(callCount, 1)
+    }
+
+    @MainActor
     func testSessionRestoresStoredLanguagePairWithBlankCanvas() {
         let settings = makeSettings()
         settings.lastSourceLanguageCode = "ja"

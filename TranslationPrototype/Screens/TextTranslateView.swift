@@ -560,6 +560,11 @@ struct TextTranslateView: View {
             }
         }
         impactFeedback.impactOccurred()
+        // 缓存命中时翻译同步完成，phase 不经过 loading，onChange 不会触发——当场朗读。
+        if pendingAutoSpeak, session.phase == .idle, !session.translatedText.isEmpty {
+            pendingAutoSpeak = false
+            speakResult()
+        }
     }
 
     private func handleExitCompletion(generation: Int) {

@@ -45,7 +45,7 @@ struct LanguagePairBar: View {
             .accessibilityIdentifier("language-pair-source-button")
 
             Button(action: onSwap) {
-                Image(systemName: "arrow.up.arrow.down")
+                Image(systemName: "arrow.left.arrow.right")
                     .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(.white)
                     .frame(width: 42, height: 42)

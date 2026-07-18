@@ -71,6 +71,48 @@ protocol TranslationService: Sendable {
     func translate(_ request: TranslationRequest) async throws -> TranslationResult
 }
 
+/// 进程内翻译缓存：同一引擎、语言对与原文直接复用结果，不再重复请求。
+/// 只缓存成功结果，失败永远走重试。
+@MainActor
+final class TranslationMemoryCache {
+    struct Key: Hashable {
+        let engine: TranslationEngine
+        let sourceCode: String
+        let targetCode: String
+        let text: String
+    }
+
+    private var storage: [Key: TranslationResult] = [:]
+    private var recentKeys: [Key] = []
+    private let capacity: Int
+
+    init(capacity: Int = 200) {
+        self.capacity = capacity
+    }
+
+    func result(for key: Key) -> TranslationResult? {
+        guard let result = storage[key] else { return nil }
+        touch(key)
+        return result
+    }
+
+    func store(_ result: TranslationResult, for key: Key) {
+        storage[key] = result
+        touch(key)
+        if storage.count > capacity, let oldest = recentKeys.first {
+            recentKeys.removeFirst()
+            storage.removeValue(forKey: oldest)
+        }
+    }
+
+    private func touch(_ key: Key) {
+        if let index = recentKeys.firstIndex(of: key) {
+            recentKeys.remove(at: index)
+        }
+        recentKeys.append(key)
+    }
+}
+
 /// 原型阶段的本地演示译文，UI 测试通过 --prototype-canned-translation 注入，
 /// 保持既有测试断言的固定输出。
 struct CannedTranslationService: TranslationService {

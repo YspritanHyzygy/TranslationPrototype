@@ -238,6 +238,7 @@ final class TranslationSession {
 
     let settings: AppSettings
     private let serviceOverride: (any TranslationService)?
+    private let cache = TranslationMemoryCache()
 
     init(settings: AppSettings = AppSettings(), service: (any TranslationService)? = nil) {
         self.settings = settings
@@ -327,6 +328,17 @@ final class TranslationSession {
             return
         }
 
+        let cacheKey = TranslationMemoryCache.Key(
+            engine: settings.translationEngine,
+            sourceCode: sourceLanguage.code,
+            targetCode: targetLanguage.code,
+            text: text
+        )
+        if let cached = cache.result(for: cacheKey) {
+            apply(cached)
+            return
+        }
+
         phase = .loading
         translatedText = ""
         translationCandidates = []
@@ -340,16 +352,21 @@ final class TranslationSession {
             do {
                 let result = try await service.translate(request)
                 guard !Task.isCancelled else { return }
-                translatedText = result.text
-                translationCandidates = [result.text] + result.alternatives.filter { $0 != result.text }
-                detectedLanguage = sourceLanguage.isAuto ? result.detectedLanguage : nil
-                phase = .idle
+                cache.store(result, for: cacheKey)
+                apply(result)
             } catch is CancellationError {
             } catch {
                 guard !Task.isCancelled else { return }
                 phase = .failed((error as? TranslationError) ?? .network)
             }
         }
+    }
+
+    private func apply(_ result: TranslationResult) {
+        translatedText = result.text
+        translationCandidates = [result.text] + result.alternatives.filter { $0 != result.text }
+        detectedLanguage = sourceLanguage.isAuto ? result.detectedLanguage : nil
+        phase = .idle
     }
 
     func swapLanguages() {
