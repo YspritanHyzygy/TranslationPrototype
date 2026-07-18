@@ -19,36 +19,11 @@ struct TextTranslateView: View {
     @State private var toastText: String?
     @State private var speechSynthesizer = AVSpeechSynthesizer()
     @State private var pendingFocusTask: Task<Void, Never>?
-    @State private var transitionPhase: TextEntryTransitionPhase = .idle
     @State private var transitionGeneration = 0
-    @State private var pendingEntryAnimationGeneration: Int?
-    @State private var pendingEntryLayoutCandidate: TextEntrySourceLayoutMeasurement?
-    @State private var entryLayoutValidationPass = 0
-    @State private var idleSourceFrame = CGRect.zero
-    @State private var liveSourceFrame = CGRect.zero
-    @State private var idleResultFrame = CGRect.zero
-    @State private var currentViewportSize = CGSize.zero
-    @State private var idleViewportSize = CGSize.zero
-    @State private var idleViewportHeight: CGFloat = 0
-    @State private var transitionSourceFrame = CGRect.zero
-    @State private var transitionResultFrame = CGRect.zero
-    @State private var transitionPaperTargetHeight: CGFloat = 0
-    @State private var transitionPaperGeometryIsValid = false
-    @State private var transitionResultGeometryIsValid = false
-    @State private var transitionSnapshot = TextEntryTransitionSnapshot.empty
-    @State private var paperRevealProgress: CGFloat = 0
-    @State private var transitionPaperOpacity: Double = 0
-    @State private var liveSourceOpacity: Double = 1
-    @State private var liveResultOpacity: Double = 1
-    @State private var transitionResultOpacity: Double = 0
-    @State private var transitionResultOffset: CGFloat = 0
-    @State private var idleHeaderOpacity: Double = 1
-    @State private var finishButtonProgress: CGFloat = 0
+    @State private var transitionSignpostState: OSSignpostIntervalState?
 #if DEBUG
     @State private var motionProbeTransitionID = 0
-    @State private var motionProbeDirection: TextEntryMotionDirection = .idle
 #endif
-    @State private var transitionSignpostState: OSSignpostIntervalState?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -56,78 +31,22 @@ struct TextTranslateView: View {
             languagePairBar
 
             GeometryReader { proxy in
-                ZStack(alignment: .topLeading) {
-                    ScrollView(showsIndicators: false) {
-                        VStack(spacing: 14) {
-                            sourceCard
-                                .frame(height: focusedSourceCardHeight(in: proxy.size.height))
-                                .opacity(liveSourceOpacity)
-                                .allowsHitTesting(
-                                    transitionPhase == .idle || transitionPhase == .editing
-                                )
-                                .modifier(
-                                    TextEntryTransitionAccessibilityModifier(
-                                        isHidden: transitionPhase == .entering
-                                            || transitionPhase == .exiting
-                                    )
-                                )
-                                .onGeometryChange(for: TextEntrySourceLayoutMeasurement.self) { cardProxy in
-                                    TextEntrySourceLayoutMeasurement(
-                                        generation: transitionGeneration,
-                                        validationPass: entryLayoutValidationPass,
-                                        frame: cardProxy.frame(
-                                            in: .named(TextEntryCoordinateSpace.name)
-                                        ),
-                                        viewportSize: proxy.size
-                                    )
-                                } action: { measurement in
-                                    storeSourceLayout(measurement)
-                                }
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 14) {
+                        sourceCard
+                            .frame(height: focusedSourceCardHeight(in: proxy.size.height))
+                            .zIndex(1)
 
-                            if transitionPhase == .idle {
-                                resultGroup
-                                    .opacity(liveResultOpacity)
-                                    .background {
-                                        GeometryReader { resultProxy in
-                                            Color.clear.preference(
-                                                key: IdleResultFramePreferenceKey.self,
-                                                value: resultProxy.frame(in: .named(TextEntryCoordinateSpace.name))
-                                            )
-                                        }
-                                    }
-                            }
+                        if !isEditingSource {
+                            resultGroup
+                                .transition(.opacity.animation(motionProfile.contentFade))
                         }
-                        .padding(.horizontal, 18)
-                        .padding(.top, 16)
-                        .padding(.bottom, 16)
                     }
-                    .zIndex(0)
-
-                    TextEntryTransitionOverlay(
-                        snapshot: transitionSnapshot,
-                        sourceFrame: transitionSourceFrame,
-                        resultFrame: transitionResultFrame,
-                        paperTargetHeight: transitionPaperTargetHeight,
-                        paperProgress: paperRevealProgress,
-                        paperOpacity: transitionPaperOpacity,
-                        resultOpacity: transitionResultOpacity,
-                        resultOffset: transitionResultOffset,
-                        reducesMotion: motionProfile.reducesMotion,
-                        probe: motionProbeToken
-                    )
-                    .zIndex(10)
-
-                    motionProbeAccessibilityView
-                        .zIndex(20)
+                    .padding(.horizontal, 18)
+                    .padding(.top, 16)
+                    .padding(.bottom, 16)
                 }
-                .coordinateSpace(name: TextEntryCoordinateSpace.name)
-                .onAppear {
-                    storeIdleViewportSize(proxy.size)
-                }
-                .onChange(of: proxy.size) { _, newSize in
-                    storeIdleViewportSize(newSize)
-                }
-                .onPreferenceChange(IdleResultFramePreferenceKey.self, perform: storeIdleResultFrame)
+                .scrollDisabled(isEditingSource)
             }
         }
         .background(AppTheme.paper.ignoresSafeArea())
@@ -144,13 +63,14 @@ struct TextTranslateView: View {
                     .accessibilityIdentifier("translation-toast")
             }
         }
+        .overlay(alignment: .topLeading) {
+            motionProbeAccessibilityView
+        }
         .sheet(item: $presentedSheet, onDismiss: restoreDraftFocusIfNeeded) { destination in
             sheetView(for: destination)
         }
         .onDisappear {
             cancelPendingFocus()
-            pendingEntryAnimationGeneration = nil
-            pendingEntryLayoutCandidate = nil
             transitionGeneration &+= 1
             endTransitionSignpost(markStable: false)
         }
@@ -175,9 +95,10 @@ struct TextTranslateView: View {
                         .accessibilityLabel("语言设置")
                         .accessibilityIdentifier("settings-button")
                 }
-                .opacity(idleHeaderOpacity)
-                .allowsHitTesting(transitionPhase == .idle)
-                .accessibilityHidden(transitionPhase != .idle)
+                .opacity(isEditingSource ? 0 : 1)
+                .animation(motionProfile.headerFade, value: isEditingSource)
+                .allowsHitTesting(!isEditingSource)
+                .accessibilityHidden(isEditingSource)
 
                 Button(action: finishEditingAndTranslate) {
                     Image(systemName: "checkmark")
@@ -191,14 +112,15 @@ struct TextTranslateView: View {
                 .accessibilityLabel("完成并翻译")
                 .accessibilityHint("提交当前文字并返回翻译结果")
                 .accessibilityIdentifier(
-                    transitionPhase == .editing
+                    isEditingSource
                         ? "finish-source-editing-button"
                         : "finish-source-editing-button-hidden"
                 )
-                .opacity(finishButtonProgress)
-                .scaleEffect(motionProfile.finishButtonScale(progress: finishButtonProgress))
-                .allowsHitTesting(transitionPhase == .editing)
-                .accessibilityHidden(transitionPhase != .editing)
+                .opacity(isEditingSource ? 1 : 0)
+                .scaleEffect(motionProfile.finishButtonScale(isEditing: isEditingSource))
+                .animation(motionProfile.finishButtonAnimation, value: isEditingSource)
+                .allowsHitTesting(isEditingSource)
+                .accessibilityHidden(!isEditingSource)
             }
             .frame(width: 102, height: 46, alignment: .trailing)
         }
@@ -217,12 +139,6 @@ struct TextTranslateView: View {
         )
         .padding(.horizontal, 18)
         .padding(.top, 14)
-        .allowsHitTesting(transitionPhase == .idle || transitionPhase == .editing)
-        .modifier(
-            TextEntryTransitionAccessibilityModifier(
-                isHidden: transitionPhase == .entering || transitionPhase == .exiting
-            )
-        )
     }
 
     private var sourceCard: some View {
@@ -255,7 +171,7 @@ struct TextTranslateView: View {
                     .accessibilityLabel("原文")
                     .accessibilityHint("输入完成后，点按右上角对勾翻译")
                     .accessibilityIdentifier("source-text-editor")
-                    .accessibilityHidden(transitionPhase != .editing)
+                    .accessibilityHidden(!isEditingSource)
 
                 if !isEditingSource {
                     Button(action: beginEditingIfNeeded) {
@@ -311,10 +227,10 @@ struct TextTranslateView: View {
     }
 
     private func sourceCardSurface(strokeOpacity: Double) -> some View {
-        RoundedRectangle(cornerRadius: 22, style: .continuous)
+        TextEntrySurfaceShape(reportsMotionProbe: motionProbeIsEnabled)
             .fill(.white)
             .overlay {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                TextEntrySurfaceShape(reportsMotionProbe: false)
                     .stroke(AppTheme.terracotta.opacity(strokeOpacity), lineWidth: 1.5)
             }
             .softShadow(radius: 8, y: 2, opacity: 0.045)
@@ -477,444 +393,78 @@ struct TextTranslateView: View {
         return max(260, viewportHeight - 32)
     }
 
-    private func storeIdleViewportSize(_ size: CGSize) {
-        if abs(currentViewportSize.width - size.width) >= 1
-            || abs(currentViewportSize.height - size.height) >= 1 {
-            currentViewportSize = size
-        }
-
-        guard transitionPhase == .idle,
-              draft == nil,
-              (abs(idleViewportSize.width - size.width) >= 1
-                || abs(idleViewportSize.height - size.height) >= 1) else { return }
-        idleViewportSize = size
-        idleViewportHeight = size.height
-    }
-
-    private func storeSourceLayout(_ measurement: TextEntrySourceLayoutMeasurement) {
-        let frame = measurement.frame
-        guard frame.width > 0, frame.height > 0 else { return }
-
-        storeIdleViewportSize(measurement.viewportSize)
-
-        if framesDiffer(liveSourceFrame, frame) {
-            liveSourceFrame = frame
-        }
-
-        if transitionPhase == .entering,
-           pendingEntryAnimationGeneration == measurement.generation,
-           measurement.generation == transitionGeneration,
-           draft != nil {
-            if let candidate = pendingEntryLayoutCandidate,
-               entryLayoutsAreStable(candidate, measurement) {
-                let generation = measurement.generation
-                withNoAnimation {
-                    transitionPaperTargetHeight = max(
-                        transitionSourceFrame.height,
-                        frame.height
-                    )
-                    pendingEntryAnimationGeneration = nil
-                    pendingEntryLayoutCandidate = nil
-                }
-                startEntryAnimation(generation: generation)
-            } else {
-                withNoAnimation {
-                    pendingEntryLayoutCandidate = measurement
-                }
-                scheduleEntryLayoutValidation(for: measurement)
-            }
-        }
-
-        guard transitionPhase == .idle,
-              draft == nil,
-              framesDiffer(idleSourceFrame, frame) else { return }
-        idleSourceFrame = frame
-    }
-
-    private func entryLayoutsAreStable(
-        _ lhs: TextEntrySourceLayoutMeasurement,
-        _ rhs: TextEntrySourceLayoutMeasurement
-    ) -> Bool {
-        lhs.generation == rhs.generation
-            && !framesDiffer(lhs.frame, rhs.frame)
-            && abs(lhs.viewportSize.width - rhs.viewportSize.width) < 1
-            && abs(lhs.viewportSize.height - rhs.viewportSize.height) < 1
-    }
-
-    private func scheduleEntryLayoutValidation(
-        for candidate: TextEntrySourceLayoutMeasurement
-    ) {
-        // Cross a main-run-loop transaction before asking SwiftUI for the
-        // confirming sample. This gives the parent TabView time to commit its
-        // toolbar visibility and safe-area proposal without guessing a delay.
-        // A late geometry update replaces the candidate and invalidates this
-        // callback, so only the latest generation can advance validation.
-        DispatchQueue.main.async {
-            guard transitionPhase == .entering,
-                  pendingEntryAnimationGeneration == candidate.generation,
-                  candidate.generation == transitionGeneration,
-                  pendingEntryLayoutCandidate == candidate else { return }
-            withNoAnimation {
-                entryLayoutValidationPass &+= 1
-            }
-        }
-    }
-
-    private func storeIdleResultFrame(_ frame: CGRect) {
-        guard transitionPhase == .idle,
-              draft == nil,
-              frame.width > 0,
-              framesDiffer(idleResultFrame, frame) else { return }
-        idleResultFrame = frame
-    }
-
-    private func framesDiffer(_ lhs: CGRect, _ rhs: CGRect) -> Bool {
-        abs(lhs.minX - rhs.minX) >= 1
-            || abs(lhs.minY - rhs.minY) >= 1
-            || abs(lhs.width - rhs.width) >= 1
-            || abs(lhs.height - rhs.height) >= 1
-    }
-
-    private func prepareTransitionGeometry() {
-        let measuredSourceIsValid = idleSourceFrame.width >= 1
-            && idleSourceFrame.height >= 1
-            && idleViewportHeight >= 1
-        let viewportWidth = idleViewportSize.width >= 1 ? idleViewportSize.width : 390
-        let viewportHeight = idleViewportHeight >= 1 ? idleViewportHeight : 600
-        let fallbackHeight = min(230, max(190, viewportHeight * 0.30))
-        let fallbackSourceFrame = CGRect(
-            x: 18,
-            y: 16,
-            width: max(1, viewportWidth - 36),
-            height: fallbackHeight
-        )
-
-        transitionPaperGeometryIsValid = measuredSourceIsValid
-        transitionSourceFrame = measuredSourceIsValid ? idleSourceFrame : fallbackSourceFrame
-        transitionPaperTargetHeight = max(
-            transitionSourceFrame.height,
-            max(260, viewportHeight - 32)
-        )
-
-        transitionResultGeometryIsValid = idleResultFrame.width >= 1
-            && idleResultFrame.height >= 1
-        transitionResultFrame = transitionResultGeometryIsValid
-            ? idleResultFrame
-            : CGRect(
-                x: transitionSourceFrame.minX,
-                y: transitionSourceFrame.maxY + 14,
-                width: transitionSourceFrame.width,
-                height: 220
-            )
-
-        if !transitionPaperGeometryIsValid || !transitionResultGeometryIsValid {
-            TextEntryMotionTrace.signposter.emitEvent("TextEntryGeometryFallback")
-        }
-    }
-
-    private func makeTransitionSnapshot(
-        from textDraft: TextTranslationDraft
-    ) -> TextEntryTransitionSnapshot {
-        TextEntryTransitionSnapshot(
-            sourceText: textDraft.sourceText,
-            sourceLanguageName: textDraft.sourceLanguage.nativeName.uppercased(),
-            characterCount: textDraft.sourceText.filter { !$0.isWhitespace }.count,
-            isDictating: isDictating,
-            resultLanguageName: session.targetLanguage.nativeName.uppercased(),
-            translatedText: session.translatedText,
-            resultIsFavorite: session.isCurrentFavorite
-        )
-    }
-
-    private var motionProbeToken: TextEntryMotionProbeToken {
-#if DEBUG
-        TextEntryMotionProbeToken(
-            id: motionProbeTransitionID,
-            direction: motionProbeDirection,
-            originY: transitionSourceFrame.minY,
-            isVisible: transitionPaperOpacity > 0.01
-        )
-#else
-        .disabled
-#endif
-    }
-
-    private func beginMotionProbe(direction: TextEntryMotionDirection) {
-#if DEBUG
-        motionProbeTransitionID &+= 1
-        motionProbeDirection = direction
-        if motionProbeIsEnabled {
-            TextEntryMotionProbe.shared.begin(
-                id: motionProbeTransitionID,
-                direction: direction,
-                reducesMotion: shouldReduceMotion,
-                initialBottomY: transitionSourceFrame.minY
-                    + (direction == .entering
-                        ? transitionSourceFrame.height
-                        : transitionPaperTargetHeight)
-            )
-        }
-#endif
-    }
-
-    private func completeMotionProbe(direction: TextEntryMotionDirection) {
-#if DEBUG
-        if motionProbeIsEnabled {
-            TextEntryMotionProbe.shared.complete(
-                id: motionProbeTransitionID,
-                direction: direction,
-                expectedBottomY: direction == .entering
-                    ? transitionSourceFrame.minY + transitionPaperTargetHeight
-                    : transitionSourceFrame.maxY
-            )
-        }
-#endif
-    }
-
-    @ViewBuilder
-    private func sheetView(for destination: TextTranslateSheet) -> some View {
-        switch destination {
-        case .alternatives:
-            AlternativeTranslationsView(session: session)
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
-                .presentationCornerRadius(30)
-        case .draftLanguage(let role):
-            LanguagePickerView(
-                role: role,
-                sourceSelection: draftLanguageBinding(for: .source),
-                targetSelection: draftLanguageBinding(for: .target)
-            )
-            .presentationDetents([.large])
-            .presentationDragIndicator(.hidden)
-            .presentationCornerRadius(30)
-        }
-    }
-
     private func beginEditingIfNeeded() {
-        guard draft == nil, transitionPhase == .idle else {
+        guard draft == nil else {
             scheduleSourceFocus(afterNanoseconds: 0)
             return
         }
 
         transitionGeneration &+= 1
         let generation = transitionGeneration
-        beginTransitionSignpost()
-        TextEntryMotionTrace.signposter.emitEvent("TextEntryTapped")
-
-        let initialDraft = session.makeTextDraft()
-        prepareTransitionGeometry()
-
-        withNoAnimation {
-            transitionSnapshot = makeTransitionSnapshot(from: initialDraft)
-            draft = initialDraft
-            transitionPhase = .entering
-            paperRevealProgress = 0
-            transitionPaperOpacity = 1
-            liveSourceOpacity = 0
-            liveResultOpacity = 1
-            transitionResultOpacity = 1
-            transitionResultOffset = 0
-            idleHeaderOpacity = 1
-            finishButtonProgress = 0
-            pendingEntryLayoutCandidate = nil
-            pendingEntryAnimationGeneration = generation
-        }
-    }
-
-    private func startEntryAnimation(generation: Int) {
-        guard generation == transitionGeneration,
-              transitionPhase == .entering,
-              draft != nil else { return }
-        beginMotionProbe(direction: .entering)
-
-        if motionProfile.reducesMotion {
-            withNoAnimation {
-                paperRevealProgress = 1
-            }
-            withAnimation(
-                motionProfile.reducedMotionCrossfade,
-                completionCriteria: .removed
-            ) {
-                transitionPaperOpacity = 0
-                liveSourceOpacity = 1
-                transitionResultOpacity = 0
-                idleHeaderOpacity = 0
-                finishButtonProgress = 1
-            } completion: {
-                completeEntryTransition(generation: generation)
-            }
-            scheduleSourceFocus(afterNanoseconds: 0)
-            return
-        }
-
-        withAnimation(motionProfile.resultExitAnimation) {
-            transitionResultOpacity = 0
-            transitionResultOffset = motionProfile.resultExitOffset
-            idleHeaderOpacity = 0
-        }
-        withAnimation(motionProfile.finishButtonAnimation.delay(0.04)) {
-            finishButtonProgress = 1
-        }
-        withAnimation(
-            motionProfile.paperExpansionAnimation,
-            completionCriteria: .removed
-        ) {
-            paperRevealProgress = 1
-        } completion: {
-            beginEntryHandoff(generation: generation)
-        }
-        scheduleSourceFocus(afterNanoseconds: motionProfile.focusDelayNanoseconds)
-    }
-
-    private func finishEditingAndTranslate() {
-        guard transitionPhase == .editing, let completedDraft = draft else { return }
-        cancelPendingFocus()
-        transitionGeneration &+= 1
-        let generation = transitionGeneration
-        pendingEntryAnimationGeneration = nil
-        pendingEntryLayoutCandidate = nil
         endTransitionSignpost(markStable: false)
         beginTransitionSignpost()
-        let focusedHeight = focusedSourceCardHeight(in: currentViewportSize.height) ?? 0
-        let frozenEditingHeight = max(
-            transitionSourceFrame.height,
-            max(focusedHeight, liveSourceFrame.height)
-        )
-        sourceIsFocused = false
-        session.commitAndTranslate(completedDraft)
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        TextEntryMotionTrace.signposter.emitEvent("TextEntryTapped")
+        beginMotionProbe(direction: .entering)
 
-        withNoAnimation {
-            transitionSnapshot = makeTransitionSnapshot(from: completedDraft)
-            transitionPhase = .exiting
-            transitionPaperTargetHeight = frozenEditingHeight
-            paperRevealProgress = 1
-            transitionPaperOpacity = 0
-            liveSourceOpacity = 1
-            liveResultOpacity = 1
-            transitionResultOpacity = 0
-            transitionResultOffset = motionProfile.resultExitOffset
-        }
-        beginMotionProbe(direction: .exiting)
+        let initialDraft = session.makeTextDraft()
 
         if motionProfile.reducesMotion {
-            finishReducedMotionExit(generation: generation)
-            return
+            withNoAnimation {
+                draft = initialDraft
+            }
+            handleEnterCompletion(generation: generation)
+        } else {
+            withAnimation(
+                motionProfile.expandAnimation,
+                completionCriteria: .removed
+            ) {
+                draft = initialDraft
+            } completion: {
+                handleEnterCompletion(generation: generation)
+            }
         }
 
-        withAnimation(
-            motionProfile.overlayHandoffAnimation,
-            completionCriteria: .removed
-        ) {
-            transitionPaperOpacity = 1
-            liveSourceOpacity = 0
-            finishButtonProgress = 0
-        } completion: {
-            beginExitContraction(generation: generation)
-        }
+        scheduleSourceFocus(afterNanoseconds: 0)
     }
 
-    private func beginEntryHandoff(generation: Int) {
-        guard generation == transitionGeneration, transitionPhase == .entering else { return }
-        withAnimation(
-            motionProfile.overlayHandoffAnimation,
-            completionCriteria: .removed
-        ) {
-            transitionPaperOpacity = 0
-            liveSourceOpacity = 1
-        } completion: {
-            completeEntryTransition(generation: generation)
-        }
-    }
-
-    private func completeEntryTransition(generation: Int) {
-        guard generation == transitionGeneration, transitionPhase == .entering else { return }
-        withNoAnimation {
-            transitionPhase = .editing
-            transitionPaperOpacity = 0
-            liveSourceOpacity = 1
-        }
+    private func handleEnterCompletion(generation: Int) {
+        guard generation == transitionGeneration else { return }
         completeMotionProbe(direction: .entering)
         endTransitionSignpost(markStable: true)
     }
 
-    private func beginExitContraction(generation: Int) {
-        guard generation == transitionGeneration, transitionPhase == .exiting else { return }
-        withAnimation(motionProfile.resultRevealAnimation.delay(0.08)) {
-            transitionResultOpacity = 1
-            transitionResultOffset = 0
-            idleHeaderOpacity = 1
-        }
-        withAnimation(
-            motionProfile.paperExitAnimation,
-            completionCriteria: .removed
-        ) {
-            paperRevealProgress = 0
-        } completion: {
-            beginExitHandoff(generation: generation)
+    private func finishEditingAndTranslate() {
+        guard let completedDraft = draft else { return }
+        cancelPendingFocus()
+        transitionGeneration &+= 1
+        let generation = transitionGeneration
+        endTransitionSignpost(markStable: false)
+        beginTransitionSignpost()
+        beginMotionProbe(direction: .exiting)
+        sourceIsFocused = false
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+
+        if motionProfile.reducesMotion {
+            withNoAnimation {
+                session.commitAndTranslate(completedDraft)
+                draft = nil
+            }
+            handleExitCompletion(generation: generation)
+        } else {
+            withAnimation(
+                motionProfile.collapseAnimation,
+                completionCriteria: .removed
+            ) {
+                session.commitAndTranslate(completedDraft)
+                draft = nil
+            } completion: {
+                handleExitCompletion(generation: generation)
+            }
         }
     }
 
-    private func beginExitHandoff(generation: Int) {
-        guard generation == transitionGeneration, transitionPhase == .exiting else { return }
-        withNoAnimation {
-            draft = nil
-            transitionPhase = .idle
-            liveSourceOpacity = 0
-            liveResultOpacity = 0
-        }
-        withAnimation(
-            motionProfile.overlayHandoffAnimation,
-            completionCriteria: .removed
-        ) {
-            transitionPaperOpacity = 0
-            transitionResultOpacity = 0
-            liveSourceOpacity = 1
-            liveResultOpacity = 1
-        } completion: {
-            completeExitTransition(generation: generation)
-        }
-    }
-
-    private func finishReducedMotionExit(generation: Int) {
-        withNoAnimation {
-            transitionPaperOpacity = 1
-            transitionResultOpacity = 1
-            transitionResultOffset = 0
-            draft = nil
-            transitionPhase = .idle
-            paperRevealProgress = 1
-            liveSourceOpacity = 0
-            liveResultOpacity = 0
-        }
-        withAnimation(
-            motionProfile.reducedMotionCrossfade,
-            completionCriteria: .removed
-        ) {
-            transitionPaperOpacity = 0
-            transitionResultOpacity = 0
-            liveSourceOpacity = 1
-            liveResultOpacity = 1
-            idleHeaderOpacity = 1
-            finishButtonProgress = 0
-        } completion: {
-            completeExitTransition(generation: generation)
-        }
-    }
-
-    private func completeExitTransition(generation: Int) {
-        guard generation == transitionGeneration, transitionPhase == .idle else { return }
-        withNoAnimation {
-            paperRevealProgress = 0
-            transitionPaperOpacity = 0
-            transitionResultOpacity = 0
-            transitionResultOffset = 0
-            liveSourceOpacity = 1
-            liveResultOpacity = 1
-            idleHeaderOpacity = 1
-            finishButtonProgress = 0
-        }
+    private func handleExitCompletion(generation: Int) {
+        guard generation == transitionGeneration else { return }
         completeMotionProbe(direction: .exiting)
         endTransitionSignpost(markStable: true)
     }
@@ -929,26 +479,19 @@ struct TextTranslateView: View {
     }
 
     private func presentLanguagePicker(for role: LanguageSelectionRole) {
-        guard transitionPhase == .idle || transitionPhase == .editing else { return }
-
-        guard transitionPhase == .editing else {
-            if role == .source {
-                onPickSource()
-            } else {
-                onPickTarget()
-            }
-            return
+        if isEditingSource {
+            cancelPendingFocus()
+            sourceIsFocused = false
+            presentedSheet = .draftLanguage(role)
+        } else if role == .source {
+            onPickSource()
+        } else {
+            onPickTarget()
         }
-
-        cancelPendingFocus()
-        sourceIsFocused = false
-        presentedSheet = .draftLanguage(role)
     }
 
     private func swapActiveLanguages() {
-        guard transitionPhase == .idle || transitionPhase == .editing else { return }
-
-        guard transitionPhase == .editing, var currentDraft = draft else {
+        guard var currentDraft = draft else {
             onSwap()
             return
         }
@@ -977,8 +520,28 @@ struct TextTranslateView: View {
         }
     }
 
+    @ViewBuilder
+    private func sheetView(for destination: TextTranslateSheet) -> some View {
+        switch destination {
+        case .alternatives:
+            AlternativeTranslationsView(session: session)
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(30)
+        case .draftLanguage(let role):
+            LanguagePickerView(
+                role: role,
+                sourceSelection: draftLanguageBinding(for: .source),
+                targetSelection: draftLanguageBinding(for: .target)
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.hidden)
+            .presentationCornerRadius(30)
+        }
+    }
+
     private func restoreDraftFocusIfNeeded() {
-        guard transitionPhase == .editing else { return }
+        guard draft != nil else { return }
         scheduleSourceFocus(afterNanoseconds: 0)
     }
 
@@ -992,7 +555,7 @@ struct TextTranslateView: View {
             }
 
             guard !Task.isCancelled,
-                  transitionPhase == .entering || transitionPhase == .editing,
+                  draft != nil,
                   presentedSheet == nil else { return }
             pendingFocusTask = nil
             TextEntryMotionTrace.signposter.emitEvent("TextEntryFocusRequested")
@@ -1003,6 +566,34 @@ struct TextTranslateView: View {
     private func cancelPendingFocus() {
         pendingFocusTask?.cancel()
         pendingFocusTask = nil
+    }
+
+    private func beginMotionProbe(direction: TextEntryMotionDirection) {
+#if DEBUG
+        motionProbeTransitionID &+= 1
+        if motionProbeIsEnabled {
+            TextEntryMotionProbe.shared.begin(
+                id: motionProbeTransitionID,
+                direction: direction,
+                reducesMotion: shouldReduceMotion
+            )
+        }
+#endif
+    }
+
+    private func completeMotionProbe(direction: TextEntryMotionDirection) {
+#if DEBUG
+        guard motionProbeIsEnabled else { return }
+        let id = motionProbeTransitionID
+        Task { @MainActor in
+            // The spring's completion can fire early when the keyboard or tab
+            // bar retargets the card's height mid-flight. Give those secondary
+            // layout animations time to settle before freezing the track's
+            // expected end point; geometry samples keep flowing until then.
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            TextEntryMotionProbe.shared.complete(id: id, direction: direction)
+        }
+#endif
     }
 
     private func beginTransitionSignpost() {
@@ -1087,399 +678,61 @@ struct TextTranslateView: View {
 private struct TextEntryMotionProfile {
     let reducesMotion: Bool
 
-    var paperExpansionAnimation: Animation {
-        reducesMotion
-            ? .easeOut(duration: 0.12)
-            : .spring(duration: 0.38, bounce: 0.12)
+    // One restrained spring drives the live card's layout; the keyboard and
+    // tab bar animate concurrently under their own system transactions and the
+    // spring retargets smoothly when they change the available height.
+    var expandAnimation: Animation {
+        .spring(duration: 0.45, bounce: 0.12)
     }
 
-    var paperExitAnimation: Animation {
-        reducesMotion
-            ? .easeOut(duration: 0.12)
-            : .smooth(duration: 0.30, extraBounce: 0)
+    var collapseAnimation: Animation {
+        .smooth(duration: 0.32)
     }
 
-    var resultExitAnimation: Animation {
-        reducesMotion
-            ? .easeOut(duration: 0.12)
-            : .easeOut(duration: 0.14)
+    var contentFade: Animation {
+        .easeOut(duration: reducesMotion ? 0.12 : 0.16)
     }
 
-    var resultRevealAnimation: Animation {
-        .easeOut(duration: reducesMotion ? 0.12 : 0.18)
+    var headerFade: Animation {
+        .easeOut(duration: reducesMotion ? 0.12 : 0.15)
     }
 
     var finishButtonAnimation: Animation {
         reducesMotion
             ? .easeOut(duration: 0.12)
-            : .spring(duration: 0.30, bounce: 0.22)
+            : .spring(duration: 0.30, bounce: 0.22).delay(0.04)
     }
 
-    var overlayHandoffAnimation: Animation {
-        .easeOut(duration: reducesMotion ? 0.12 : 0.08)
-    }
-
-    var reducedMotionCrossfade: Animation {
-        .easeOut(duration: 0.12)
-    }
-
-    var focusDelayNanoseconds: UInt64 {
-        reducesMotion ? 0 : 180_000_000
-    }
-
-    var resultExitOffset: CGFloat {
-        reducesMotion ? 0 : 6
-    }
-
-    func finishButtonScale(progress: CGFloat) -> CGFloat {
+    func finishButtonScale(isEditing: Bool) -> CGFloat {
         guard !reducesMotion else { return 1 }
-        return 0.84 + (0.16 * progress)
-    }
-
-}
-
-private struct TextEntryTransitionSnapshot: Equatable {
-    let sourceText: String
-    let sourceLanguageName: String
-    let characterCount: Int
-    let isDictating: Bool
-    let resultLanguageName: String
-    let translatedText: String
-    let resultIsFavorite: Bool
-
-    static let empty = TextEntryTransitionSnapshot(
-        sourceText: "",
-        sourceLanguageName: "",
-        characterCount: 0,
-        isDictating: false,
-        resultLanguageName: "",
-        translatedText: "",
-        resultIsFavorite: false
-    )
-}
-
-private struct TextEntryTransitionOverlay: View {
-    let snapshot: TextEntryTransitionSnapshot
-    let sourceFrame: CGRect
-    let resultFrame: CGRect
-    let paperTargetHeight: CGFloat
-    let paperProgress: CGFloat
-    let paperOpacity: Double
-    let resultOpacity: Double
-    let resultOffset: CGFloat
-    let reducesMotion: Bool
-    let probe: TextEntryMotionProbeToken
-
-    private var sourceWidth: CGFloat {
-        max(1, sourceFrame.width)
-    }
-
-    private var initialHeight: CGFloat {
-        max(1, sourceFrame.height)
-    }
-
-    private var targetHeight: CGFloat {
-        max(initialHeight, paperTargetHeight)
-    }
-
-    private var normalizedProgress: CGFloat {
-        min(1, max(0, paperProgress))
-    }
-
-    private var revealHeight: CGFloat {
-        initialHeight + ((targetHeight - initialHeight) * normalizedProgress)
-    }
-
-    var body: some View {
-        ZStack(alignment: .topLeading) {
-            TextEntryResultSnapshotView(snapshot: snapshot)
-                .frame(width: max(1, resultFrame.width))
-                .opacity(resultOpacity)
-                .offset(
-                    x: resultFrame.minX,
-                    y: resultFrame.minY + resultOffset
-                )
-
-            paperLayer
-                .opacity(paperOpacity)
-                .offset(x: sourceFrame.minX, y: sourceFrame.minY)
-        }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
-
-    private var paperLayer: some View {
-        ZStack(alignment: .topLeading) {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color.black.opacity(0.045))
-                .frame(width: sourceWidth, height: initialHeight)
-                .blur(radius: 8)
-                .offset(y: 2)
-                .opacity(1 - Double(normalizedProgress))
-
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color.black.opacity(0.045))
-                .frame(width: sourceWidth, height: targetHeight)
-                .blur(radius: 8)
-                .offset(y: 2)
-                .opacity(Double(normalizedProgress))
-
-            TextEntryPaperShape(
-                progress: paperProgress,
-                initialHeight: initialHeight,
-                targetHeight: targetHeight,
-                probe: probe
-            )
-            .fill(.white)
-            .overlay {
-                TextEntryPaperShape(
-                    progress: paperProgress,
-                    initialHeight: initialHeight,
-                    targetHeight: targetHeight,
-                    probe: .disabled
-                )
-                .stroke(
-                    AppTheme.terracotta.opacity(0.24 * Double(normalizedProgress)),
-                    lineWidth: 1.5
-                )
-            }
-
-            paperContent
-                .mask {
-                    TextEntryPaperShape(
-                        progress: paperProgress,
-                        initialHeight: initialHeight,
-                        targetHeight: targetHeight,
-                        probe: .disabled
-                    )
-                }
-
-            VStack(spacing: 0) {
-                Rectangle()
-                    .fill(AppTheme.terracotta.opacity(0.24))
-                    .frame(height: 1.5)
-                LinearGradient(
-                    colors: [Color.black.opacity(0.065), .clear],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 8)
-            }
-            .frame(width: max(1, sourceWidth - 16))
-            .opacity(reducesMotion ? 0 : 1)
-            .offset(x: 8, y: revealHeight - 1)
-        }
-        .frame(width: sourceWidth, height: targetHeight, alignment: .topLeading)
-    }
-
-    private var paperContent: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            SectionLabel(
-                text: snapshot.sourceLanguageName,
-                color: AppTheme.secondaryInk
-            )
-
-            Group {
-                if snapshot.sourceText.isEmpty {
-                    Text("输入需要翻译的文字")
-                        .foregroundStyle(AppTheme.muted)
-                } else {
-                    Text(snapshot.sourceText)
-                        .foregroundStyle(AppTheme.ink)
-                }
-            }
-            .font(.system(size: 25, weight: .regular))
-            .lineSpacing(7)
-            .frame(
-                maxWidth: .infinity,
-                maxHeight: .infinity,
-                alignment: .topLeading
-            )
-            .clipped()
-            .padding(.horizontal, 5)
-            .padding(.vertical, 8)
-
-            HStack {
-                Text("\(snapshot.characterCount) 字")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(AppTheme.faint)
-
-                Spacer()
-
-                Image(systemName: snapshot.isDictating ? "waveform" : "mic")
-                    .frame(width: 44, height: 44)
-                Image(systemName: "xmark")
-                    .frame(width: 44, height: 44)
-            }
-            .font(.system(size: 18, weight: .medium))
-            .foregroundStyle(AppTheme.muted)
-            .padding(.top, 2)
-            .layoutPriority(1)
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 18)
-        .frame(
-            width: sourceWidth,
-            height: max(1, revealHeight),
-            alignment: .topLeading
-        )
-        .clipped()
+        return isEditing ? 1 : 0.84
     }
 }
 
-private struct TextEntryResultSnapshotView: View {
-    let snapshot: TextEntryTransitionSnapshot
-
-    var body: some View {
-        VStack(spacing: 14) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 7) {
-                    Circle()
-                        .fill(AppTheme.terracotta)
-                        .frame(width: 7, height: 7)
-                    SectionLabel(
-                        text: snapshot.resultLanguageName,
-                        color: AppTheme.terracotta
-                    )
-                }
-
-                Text(snapshot.translatedText.isEmpty ? "译文会显示在这里" : snapshot.translatedText)
-                    .font(.system(size: 25, weight: .regular, design: .serif))
-                    .lineSpacing(5)
-                    .foregroundStyle(
-                        snapshot.translatedText.isEmpty
-                            ? AppTheme.faint
-                            : Color(hex: 0x26221D)
-                    )
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                HStack(spacing: 16) {
-                    snapshotActionIcon("speaker.wave.2")
-                    snapshotActionIcon("doc.on.doc")
-                    snapshotActionIcon(snapshot.resultIsFavorite ? "star.fill" : "star")
-                    Spacer()
-                    snapshotActionIcon("square.and.arrow.up")
-                }
-                .padding(.top, 14)
-                .overlay(alignment: .top) {
-                    Rectangle()
-                        .fill(AppTheme.terracotta.opacity(0.14))
-                        .frame(height: 1)
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 18)
-            .background(
-                AppTheme.terracottaSoft,
-                in: RoundedRectangle(cornerRadius: 22, style: .continuous)
-            )
-
-            Text("轻点结果可查看其他译法")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Color(hex: 0xC4BBAC))
-                .padding(.top, 2)
-        }
-    }
-
-    private func snapshotActionIcon(_ systemName: String) -> some View {
-        Image(systemName: systemName)
-            .font(.system(size: 16, weight: .semibold))
-            .foregroundStyle(AppTheme.terracotta.opacity(0.78))
-            .frame(width: 36, height: 36)
-            .background(AppTheme.terracotta.opacity(0.08), in: Circle())
-    }
-}
-
-private struct TextEntryPaperShape: Shape {
-    var progress: CGFloat
-    let initialHeight: CGFloat
-    let targetHeight: CGFloat
-    let probe: TextEntryMotionProbeToken
-
-    var animatableData: CGFloat {
-        get { progress }
-        set { progress = newValue }
-    }
+/// The live source card's surface. Shapes re-resolve their path every frame
+/// of an animated resize (keeping the continuous corners undistorted), which
+/// also makes this the one place that observes the card's true frame-by-frame
+/// geometry — the DEBUG motion probe taps into that here.
+private struct TextEntrySurfaceShape: Shape {
+    let reportsMotionProbe: Bool
 
     func path(in rect: CGRect) -> Path {
-        let normalizedProgress = min(1, max(0, progress))
-        let resolvedInitialHeight = max(1, initialHeight)
-        let resolvedTargetHeight = max(resolvedInitialHeight, targetHeight)
-        let currentHeight = resolvedInitialHeight
-            + ((resolvedTargetHeight - resolvedInitialHeight) * normalizedProgress)
-        let paperRect = CGRect(
-            x: rect.minX,
-            y: rect.minY,
-            width: rect.width,
-            height: min(rect.height, currentHeight)
-        )
 #if DEBUG
-        if probe.id > 0, probe.direction != .idle {
-            TextEntryMotionProbe.shared.record(
-                id: probe.id,
-                direction: probe.direction,
-                progress: normalizedProgress,
-                bottomY: probe.originY + paperRect.height,
-                opacity: probe.isVisible ? 1 : 0,
-                geometryIsValid: rect.width > 1
-                    && resolvedTargetHeight - resolvedInitialHeight >= 24
+        if reportsMotionProbe {
+            TextEntryMotionProbe.shared.noteCardGeometry(
+                bottomY: rect.maxY,
+                isValid: rect.width > 1
             )
         }
 #endif
-        return RoundedRectangle(cornerRadius: 22, style: .continuous)
-            .path(in: paperRect)
+        return RoundedRectangle(cornerRadius: 22, style: .continuous).path(in: rect)
     }
-}
-
-private struct TextEntryMotionProbeToken {
-    let id: Int
-    let direction: TextEntryMotionDirection
-    let originY: CGFloat
-    let isVisible: Bool
-
-    static let disabled = TextEntryMotionProbeToken(
-        id: 0,
-        direction: .idle,
-        originY: 0,
-        isVisible: false
-    )
 }
 
 private enum TextEntryMotionDirection: String {
     case idle
     case entering = "enter"
     case exiting = "exit"
-}
-
-private enum TextEntryTransitionPhase {
-    case idle
-    case entering
-    case editing
-    case exiting
-}
-
-private struct TextEntryTransitionAccessibilityModifier: ViewModifier {
-    let isHidden: Bool
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if isHidden {
-            content.accessibilityHidden(true)
-        } else {
-            content
-        }
-    }
-}
-
-private enum TextEntryCoordinateSpace {
-    static let name = "text-entry-content"
-}
-
-private struct TextEntrySourceLayoutMeasurement: Equatable {
-    let generation: Int
-    let validationPass: Int
-    let frame: CGRect
-    let viewportSize: CGSize
 }
 
 private enum TextEntryMotionTrace {
@@ -1542,13 +795,15 @@ private final class TextEntryMotionProbeAXRegistry {
     }
 }
 
+/// Records the live source card's animated bottom edge during entry/exit
+/// transitions. Samples come straight from the card's real geometry, so a
+/// passing track proves the on-screen layout actually moved through
+/// intermediate frames instead of snapping.
 private final class TextEntryMotionProbe: @unchecked Sendable {
     static let shared = TextEntryMotionProbe()
 
     private struct Sample {
-        let progress: CGFloat
         let bottomY: CGFloat
-        let opacity: Double
         let geometryIsValid: Bool
     }
 
@@ -1560,9 +815,8 @@ private final class TextEntryMotionProbe: @unchecked Sendable {
         var isComplete = false
 
         mutating func append(_ sample: Sample) {
-            guard samples.count < 240 else { return }
+            guard !isComplete, samples.count < 240 else { return }
             if let last = samples.last,
-               abs(last.progress - sample.progress) < 0.005,
                abs(last.bottomY - sample.bottomY) < 0.5 {
                 return
             }
@@ -1575,9 +829,7 @@ private final class TextEntryMotionProbe: @unchecked Sendable {
             }
 
             let validSamples = samples.filter {
-                $0.opacity > 0.01
-                    && $0.geometryIsValid
-                    && $0.bottomY.isFinite
+                $0.geometryIsValid && $0.bottomY.isFinite
             }
             let signedDistance = direction == .entering
                 ? expectedBottomY - initialBottomY
@@ -1670,6 +922,9 @@ private final class TextEntryMotionProbe: @unchecked Sendable {
         "--ui-testing-text-entry-motion-probe"
     )
     private var reducesMotion = false
+    private var lastBottomY: CGFloat?
+    private var activeDirection: TextEntryMotionDirection = .idle
+    private var activeID = 0
     private var enterTrack = Track()
     private var exitTrack = Track()
 
@@ -1692,15 +947,33 @@ private final class TextEntryMotionProbe: @unchecked Sendable {
         lock.unlock()
     }
 
+    func noteCardGeometry(bottomY: CGFloat, isValid: Bool) {
+        guard enabled else { return }
+        lock.lock()
+        lastBottomY = bottomY
+        if activeDirection != .idle {
+            let sample = Sample(bottomY: bottomY, geometryIsValid: isValid)
+            switch activeDirection {
+            case .entering where enterTrack.id == activeID:
+                enterTrack.append(sample)
+            case .exiting where exitTrack.id == activeID:
+                exitTrack.append(sample)
+            default:
+                break
+            }
+        }
+        lock.unlock()
+    }
+
     func begin(
         id: Int,
         direction: TextEntryMotionDirection,
-        reducesMotion: Bool,
-        initialBottomY: CGFloat
+        reducesMotion: Bool
     ) {
-        guard enabled else { return }
+        guard enabled, direction != .idle else { return }
         lock.lock()
         self.reducesMotion = reducesMotion
+        let initialBottomY = lastBottomY ?? 0
         switch direction {
         case .entering:
             enterTrack = Track(id: id, initialBottomY: initialBottomY)
@@ -1709,44 +982,16 @@ private final class TextEntryMotionProbe: @unchecked Sendable {
         case .idle:
             break
         }
+        activeDirection = direction
+        activeID = id
         lock.unlock()
         scheduleAccessibilityUpdate()
     }
 
-    func record(
-        id: Int,
-        direction: TextEntryMotionDirection,
-        progress: CGFloat,
-        bottomY: CGFloat,
-        opacity: Double,
-        geometryIsValid: Bool
-    ) {
-        guard enabled else { return }
-        let sample = Sample(
-            progress: min(1, max(0, progress)),
-            bottomY: bottomY,
-            opacity: opacity,
-            geometryIsValid: geometryIsValid
-        )
+    func complete(id: Int, direction: TextEntryMotionDirection) {
+        guard enabled, direction != .idle else { return }
         lock.lock()
-        switch direction {
-        case .entering where enterTrack.id == id:
-            enterTrack.append(sample)
-        case .exiting where exitTrack.id == id:
-            exitTrack.append(sample)
-        default:
-            break
-        }
-        lock.unlock()
-    }
-
-    func complete(
-        id: Int,
-        direction: TextEntryMotionDirection,
-        expectedBottomY: CGFloat
-    ) {
-        guard enabled else { return }
-        lock.lock()
+        let expectedBottomY = lastBottomY
         switch direction {
         case .entering where enterTrack.id == id:
             enterTrack.expectedBottomY = expectedBottomY
@@ -1756,6 +1001,9 @@ private final class TextEntryMotionProbe: @unchecked Sendable {
             exitTrack.isComplete = true
         default:
             break
+        }
+        if activeID == id, activeDirection == direction {
+            activeDirection = .idle
         }
         lock.unlock()
         scheduleAccessibilityUpdate()
@@ -1786,14 +1034,6 @@ private final class TextEntryMotionProbe: @unchecked Sendable {
     }
 }
 #endif
-
-private struct IdleResultFramePreferenceKey: PreferenceKey {
-    static let defaultValue = CGRect.zero
-
-    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
-        value = nextValue()
-    }
-}
 
 private enum TextTranslateSheet: Identifiable {
     case alternatives

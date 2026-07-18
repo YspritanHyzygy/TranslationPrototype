@@ -32,9 +32,9 @@
 
 以上结论与产物作为修改前的“无反弹纸张展开”基线保留，不作为下述“视觉纸层 / 克制轻弹”优化的最终验收结论。
 
-## Foreground paper-overlay visibility revision
+## Foreground paper-overlay visibility revision (historical baseline)
 
-`passed` (visible-path implementation and Simulator regression; device Instruments sign-off pending)
+`superseded`（实机观感仍掉帧、交接处有跳变，被下述“直接布局动画”修订取代；以下记录与产物保留为历史证据）
 
 - 根因不是系统 Reduce Motion，而是旧实现的主弹簧只走到较短的中间高度，剩余展开被后续布局更新补齐；同时转场纸层可能位于真实滚动内容之后。代码虽有动画，屏幕观感仍接近瞬切。
 - 当前覆盖层始终挂载在 `GeometryReader` 内并明确位于 `ScrollView` 前方。它使用纯 SwiftUI 重绘冻结的语言、原文、字数与底部操作，不复制 `TextEditor`；真实编辑器保持同一身份，只在无动画事务中切换一次最终布局。
@@ -60,6 +60,26 @@
 | `tmp/qa/text-entry-paper-overlay-visible-current2.mov` | H.264 QuickTime 可解码，但夹杂 `simctl recordVideo` 黑帧/损坏帧；仅作辅助端点记录，不作精确时序或流畅度证据 |
 
 验收边界保持明确：Simulator 当前无法提供可信的最终 Animation Hitches 签收，因此不从录屏推断“无应用自身 ≥33ms 主线程停顿”。真正硬件键盘、动态字体、VoiceOver、实体触觉，以及 Release 真机 SwiftUI + Animation Hitches + Time Profiler，仍需设备在线后完成。
+
+## Direct layout animation revision (current)
+
+- 实测反馈：纸层方案展开仍掉帧、有动效瑕疵、响应不够灵动。定位到三类根因——覆盖层每帧重排（`.frame(height: 动画值)` 驱动的快照内容排版 + 两张 `blur(radius: 8)` 阴影板逐帧交叉淡化 + 动画 Shape `mask` 的离屏通道）；覆盖层目标高度在键盘出现前冻结，与被键盘压矮的真实卡片在 0.08 秒交接淡化时高度不一致；点按后跨两次主线程事务验证几何、键盘再延迟 180ms，四拍串行且转场锁定交互。
+- 本轮删除全部快照覆盖层、几何验证管线与 `idle/entering/editing/exiting` 阶段机（净删约 900 行）。唯一状态源为草稿是否存在：点击原文在同一事务内建立草稿，真实卡片以 `.spring(duration: 0.45, bounce: 0.12)` 从静息高度展开到 `max(260, viewport - 32)`；完成提交以 `.smooth(duration: 0.32)` 收回。原文编辑器全程同一身份，无交接、无双重曝光窗口。
+- 键盘在下一个 runloop 请求焦点，与展开并行升起；tab bar 隐藏与键盘安全区提交改变目标高度时，弹簧带速度重定向。转场全程可交互、可打断：展开途中点对勾会带当前速度平滑反向。
+- 结果区以约 0.16 秒透明度 transition 在纸面（`zIndex` 更高）之下淡出/淡入，位置由布局动画带动；对勾维持延迟 40ms、0.84 倍、`bounce: 0.22` 轻弹；头部历史/设置按钮 0.15 秒淡化。卡面描边与阴影直接随卡片形变，不再使用静态双表面交叉淡化。
+- 22pt 连续圆角由 `TextEntrySurfaceShape` 每帧重算路径保证缩放不变形；DEBUG 动画探针即由该 Shape 的 `path(in:)` 采样真实卡片底边逐帧轨迹（`onGeometryChange` 只在布局目标提交时回调，观察不到渲染树逐帧插值，不用于采样）。评估标准不变：有效位移 ≥24pt、起点/中间值/终点齐备、至少三个单调位置。
+- Reduce Motion：布局直接切换终态（无尺寸、位移、缩放动画），结果区与头部按钮保留约 0.12 秒透明度淡化；键盘与 tab bar 继续系统行为。草稿、听写、清空、语言选择与“完成后翻译”语义不变。
+
+当前验收环境：Xcode 27.0，iPhone 17 Pro / iOS 27.0 Simulator。
+
+| Artifact | Result |
+| --- | --- |
+| Debug 通用 Simulator 构建 | build succeeded；0 errors |
+| 动画实际路径专项（`testTextEntryPaperMotionRendersIntermediateFrames`） | 1 passed、0 failed（真实卡面逐帧轨迹：起点/中间/终点齐备、单调） |
+| 草稿模型单元测试 | 2 passed、0 failed |
+| 完整 UI 套件（8 条主流程） | 8 passed、0 failed、0 skipped（约 230 秒） |
+
+验收边界与上一轮一致：Simulator 不出具 Animation Hitches 结论；真机 Instruments、真正硬件键盘、动态字体、VoiceOver 与实体触觉验收待设备在线后补做。
 
 ## Source visual truth
 
