@@ -102,6 +102,7 @@ struct VoiceConversationView: View {
                         .frame(width: 84, height: 84)
                         .liquidGlass(
                             tint: isListening ? AppTheme.terracotta : AppTheme.muted,
+                            interactive: false,
                             in: Circle()
                         ) { content in
                             content
@@ -152,7 +153,7 @@ struct VoiceConversationView: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(activeSpeaker == speaker ? AppTheme.terracotta : AppTheme.muted)
                 .frame(width: 54, height: 54)
-                .liquidGlass(in: Circle()) { content in
+                .liquidGlass(interactive: false, in: Circle()) { content in
                     content
                         .background(.white, in: Circle())
                         .softShadow(radius: 7, y: 2, opacity: 0.07)

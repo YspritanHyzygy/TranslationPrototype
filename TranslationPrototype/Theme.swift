@@ -41,14 +41,17 @@ extension View {
     /// iOS 26+：交互式液体玻璃，裁剪到 shape，可选着色。
     /// iOS 17-25：执行 fallback 闭包，原样保留改造前的背景/阴影链。
     /// 像 background 一样，在 frame/padding 之后调用。
+    /// interactive 的拖拽形变只带动玻璃和它内部的内容，静态的同心装饰
+    /// （光晕、描边覆盖层）不会跟随——这类按钮要传 interactive: false。
     @ViewBuilder
     func liquidGlass<S: Shape, Fallback: View>(
         tint: Color? = nil,
+        interactive: Bool = true,
         in shape: S,
         @ViewBuilder fallback: (Self) -> Fallback
     ) -> some View {
         if #available(iOS 26.0, *) {
-            glassEffect(.regular.tint(tint).interactive(), in: shape)
+            glassEffect(.regular.tint(tint).interactive(interactive), in: shape)
         } else {
             fallback(self)
         }
