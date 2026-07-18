@@ -5,6 +5,7 @@ import UIKit
 
 struct TextTranslateView: View {
     @Bindable var session: TranslationSession
+    let settings: AppSettings
     let onSwap: () -> Void
     let onPickSource: () -> Void
     let onPickTarget: () -> Void
@@ -15,6 +16,7 @@ struct TextTranslateView: View {
     @FocusState private var sourceIsFocused: Bool
     @State private var draft: TextTranslationDraft?
     @State private var isDictating = false
+    @State private var pendingAutoSpeak = false
     @State private var presentedSheet: TextTranslateSheet?
     @State private var toastText: String?
     @State private var speechSynthesizer = AVSpeechSynthesizer()
@@ -96,6 +98,20 @@ struct TextTranslateView: View {
             transitionGeneration &+= 1
             endTransitionSignpost(markStable: false)
         }
+        .onChange(of: session.phase) { _, newPhase in
+            guard pendingAutoSpeak else { return }
+            switch newPhase {
+            case .idle:
+                pendingAutoSpeak = false
+                if !session.translatedText.isEmpty {
+                    speakResult()
+                }
+            case .failed:
+                pendingAutoSpeak = false
+            case .loading:
+                break
+            }
+        }
         .toolbar(isEditingSource ? .hidden : .visible, for: .tabBar)
     }
 
@@ -135,7 +151,7 @@ struct TextTranslateView: View {
                             .accessibilityLabel("历史记录")
                             .accessibilityIdentifier("history-button")
                         IconCircleButton(systemName: "slider.horizontal.3", action: onSettings)
-                            .accessibilityLabel("语言设置")
+                            .accessibilityLabel("设置")
                             .accessibilityIdentifier("settings-button")
                     }
                     .transition(.opacity.animation(motionProfile.headerFade))
@@ -153,6 +169,9 @@ struct TextTranslateView: View {
         LanguagePairBar(
             source: activeSourceLanguage,
             target: activeTargetLanguage,
+            sourceDisplayName: isEditingSource ? nil : session.sourceDisplayName,
+            // 编辑中的草稿没有检测结果可用，源语言为自动检测时无从交换。
+            isSwapEnabled: isEditingSource ? !activeSourceLanguage.isAuto : session.isSwapEnabled,
             onSourceTap: { presentLanguagePicker(for: .source) },
             onTargetTap: { presentLanguagePicker(for: .target) },
             onSwap: swapActiveLanguages
@@ -260,16 +279,17 @@ struct TextTranslateView: View {
         VStack(spacing: 14) {
             resultCard
 
-            Button {
-                presentedSheet = .alternatives
-            } label: {
-                Text("轻点结果可查看其他译法")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color(hex: 0xC4BBAC))
-                    .padding(.top, 2)
+            if session.hasAlternatives {
+                Button {
+                    presentedSheet = .alternatives
+                } label: {
+                    Text("轻点结果可查看其他译法")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Color(hex: 0xC4BBAC))
+                        .padding(.top, 2)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
-            .disabled(session.translatedText.isEmpty)
         }
     }
 
@@ -285,21 +305,58 @@ struct TextTranslateView: View {
                 )
             }
 
-            Button {
-                presentedSheet = .alternatives
-            } label: {
-                Text(session.translatedText.isEmpty ? "译文会显示在这里" : session.translatedText)
-                    .font(.system(size: 25, weight: .regular, design: .serif))
-                    .lineSpacing(5)
-                    .foregroundStyle(session.translatedText.isEmpty ? AppTheme.faint : Color(hex: 0x26221D))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .multilineTextAlignment(.leading)
+            switch session.phase {
+            case .loading:
+                HStack(spacing: 10) {
+                    ProgressView()
+                        .tint(AppTheme.terracotta)
+                    Text("正在翻译…")
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundStyle(AppTheme.secondaryInk)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 10)
+                .accessibilityIdentifier("translation-loading")
+            case .failed(let error):
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(error.errorDescription ?? "翻译失败，请重试")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(AppTheme.secondaryInk)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .multilineTextAlignment(.leading)
+                    Button {
+                        session.refreshTranslation()
+                    } label: {
+                        Text("重试")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 8)
+                            .background(AppTheme.terracotta, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("translation-retry-button")
+                }
+                .padding(.vertical, 4)
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("translation-error")
+            case .idle:
+                Button {
+                    presentedSheet = .alternatives
+                } label: {
+                    Text(session.translatedText.isEmpty ? "译文会显示在这里" : session.translatedText)
+                        .font(.system(size: 25, weight: .regular, design: .serif))
+                        .lineSpacing(5)
+                        .foregroundStyle(session.translatedText.isEmpty ? AppTheme.faint : Color(hex: 0x26221D))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .multilineTextAlignment(.leading)
+                }
+                .buttonStyle(.plain)
+                .disabled(!session.hasAlternatives)
+                .accessibilityLabel("译文")
+                .accessibilityValue(session.translatedText)
+                .accessibilityIdentifier("translation-result")
             }
-            .buttonStyle(.plain)
-            .disabled(session.translatedText.isEmpty)
-            .accessibilityLabel("译文")
-            .accessibilityValue(session.translatedText)
-            .accessibilityIdentifier("translation-result")
 
             HStack(spacing: 16) {
                 resultAction(
@@ -474,6 +531,9 @@ struct TextTranslateView: View {
 
     private func finishEditingAndTranslate() {
         guard let completedDraft = draft else { return }
+        // 翻译是异步的，先记下意图，等 phase 回到 idle 再朗读。
+        pendingAutoSpeak = settings.autoSpeaksTranslation
+            && !completedDraft.sourceText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         cancelPendingFocus()
         transitionGeneration &+= 1
         let generation = transitionGeneration
@@ -1105,7 +1165,7 @@ private struct AlternativeTranslationsView: View {
                 PrototypeCloseButton { dismiss() }
             }
 
-            ForEach(Array(session.alternatives.enumerated()), id: \.offset) { index, alternative in
+            ForEach(Array(session.translationCandidates.enumerated()), id: \.offset) { index, alternative in
                 Button {
                     session.translatedText = alternative
                     session.saveCurrent()
@@ -1139,6 +1199,7 @@ private struct AlternativeTranslationsView: View {
 #Preview {
     TextTranslateView(
         session: TranslationSession(),
+        settings: AppSettings(),
         onSwap: {},
         onPickSource: {},
         onPickTarget: {},

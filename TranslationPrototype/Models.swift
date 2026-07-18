@@ -43,11 +43,13 @@ enum LanguageSelectionRole: String, Identifiable {
 enum SheetDestination: Identifiable {
     case language(LanguageSelectionRole)
     case history
+    case settings
 
     var id: String {
         switch self {
         case .language(let role): "language-\(role.rawValue)"
         case .history: "history"
+        case .settings: "settings"
         }
     }
 }
@@ -62,6 +64,11 @@ struct Language: Identifiable, Equatable, Hashable {
     static let chinese = Language(code: "zh-Hans", nativeName: "中文", chineseName: "简体中文")
     static let english = Language(code: "en", nativeName: "English", chineseName: "英语")
     static let japanese = Language(code: "ja", nativeName: "日本語", chineseName: "日语")
+
+    /// 仅作为源语言使用；不进入 all/recent，因而不会出现在目标语言列表里。
+    static let auto = Language(code: "auto", nativeName: "自动检测", chineseName: "自动识别输入语言")
+
+    var isAuto: Bool { code == "auto" }
 
     static let recent: [Language] = [.english, .chinese]
 
@@ -205,41 +212,83 @@ struct HistoryItem: Identifiable, Equatable {
     ]
 }
 
+enum TranslationPhase: Equatable {
+    case idle
+    case loading
+    case failed(TranslationError)
+}
+
 @Observable
+@MainActor
 final class TranslationSession {
     var sourceLanguage: Language = .chinese
     var targetLanguage: Language = .english
     var sourceText = "今天的晚霞特别好看，我想和你一起去海边走走。"
     var translatedText = "The sunset is especially beautiful today — I'd love to take a walk along the beach with you."
     var historyItems: [HistoryItem] = HistoryItem.today + HistoryItem.yesterday
+    var phase: TranslationPhase = .idle
+    var detectedLanguage: Language?
+    /// 当前译文的全部候选（首元素即主译文），供「其他译法」选择。
+    var translationCandidates: [String] = [
+        "The sunset is especially beautiful today — I'd love to take a walk along the beach with you.",
+        "Today's sunset is breathtaking — I'd love to walk along the beach with you.",
+        "The evening sky looks especially beautiful today. Shall we take a walk by the sea?"
+    ]
+    private(set) var translationTask: Task<Void, Never>?
+
+    let settings: AppSettings
+    private let serviceOverride: (any TranslationService)?
+
+    init(settings: AppSettings = AppSettings(), service: (any TranslationService)? = nil) {
+        self.settings = settings
+        self.serviceOverride = service
+        // 首次启动保留演示内容；此后按上次使用的语言对空白开始，
+        // 启动阶段不发起任何网络请求。
+        if let storedSource = settings.storedSourceLanguage,
+           let storedTarget = settings.storedTargetLanguage {
+            sourceLanguage = storedSource
+            targetLanguage = storedTarget
+            sourceText = ""
+            translatedText = ""
+            translationCandidates = []
+        }
+    }
+
+    private var activeService: any TranslationService {
+        serviceOverride ?? settings.translationEngine.makeService()
+    }
 
     var characterCount: Int {
         sourceText.filter { !$0.isWhitespace }.count
+    }
+
+    var hasAlternatives: Bool {
+        translationCandidates.count > 1
+    }
+
+    var isSwapEnabled: Bool {
+        phase != .loading && (!sourceLanguage.isAuto || detectedLanguage != nil)
+    }
+
+    var sourceDisplayName: String {
+        guard sourceLanguage.isAuto, let detectedLanguage else {
+            return sourceLanguage.nativeName
+        }
+        return "\(detectedLanguage.nativeName) · 已检测"
+    }
+
+    /// 历史与收藏中不落「自动检测」——已检测出语言时按检测结果记录。
+    private var resolvedSourceLanguage: Language {
+        sourceLanguage.isAuto ? (detectedLanguage ?? sourceLanguage) : sourceLanguage
     }
 
     var isCurrentFavorite: Bool {
         historyItems.first {
             $0.source == sourceText
                 && $0.result == translatedText
-                && $0.sourceLanguage == sourceLanguage
+                && $0.sourceLanguage == resolvedSourceLanguage
                 && $0.targetLanguage == targetLanguage
         }?.isFavorite == true
-    }
-
-    var alternatives: [String] {
-        guard !translatedText.isEmpty else { return [] }
-        if sourceText.contains("晚霞") && targetLanguage.code == "en" {
-            return [
-                translatedText,
-                "Today's sunset is breathtaking — I'd love to walk along the beach with you.",
-                "The evening sky looks especially beautiful today. Shall we take a walk by the sea?"
-            ]
-        }
-        return [
-            translatedText,
-            "\(translatedText) (更自然)",
-            "\(translatedText) (更简洁)"
-        ]
     }
 
     func makeTextDraft() -> TextTranslationDraft {
@@ -252,6 +301,9 @@ final class TranslationSession {
 
     func commitAndTranslate(_ draft: TextTranslationDraft) {
         sourceText = draft.sourceText
+        if draft.sourceLanguage != sourceLanguage {
+            detectedLanguage = nil
+        }
         sourceLanguage = draft.sourceLanguage
         targetLanguage = draft.targetLanguage
         refreshTranslation()
@@ -263,38 +315,64 @@ final class TranslationSession {
     }
 
     func refreshTranslation() {
+        translationTask?.cancel()
+        translationTask = nil
+
         let text = sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else {
             translatedText = ""
+            translationCandidates = []
+            detectedLanguage = nil
+            phase = .idle
             return
         }
 
-        switch (sourceLanguage.code, targetLanguage.code, text) {
-        case ("zh-Hans", "en", "今天的晚霞特别好看，我想和你一起去海边走走。"):
-            translatedText = "The sunset is especially beautiful today — I'd love to take a walk along the beach with you."
-        case ("en", "zh-Hans", "The sunset is especially beautiful today — I'd love to take a walk along the beach with you."):
-            translatedText = "今天的晚霞特别好看，我想和你一起去海边走走。"
-        case ("zh-Hans", "en", "你好"):
-            translatedText = "Hello"
-        case ("en", "zh-Hans", "Good morning"):
-            translatedText = "早上好"
-        case ("zh-Hans", "ja", "谢谢你的款待。"):
-            translatedText = "おもてなしをありがとう。"
-        default:
-            translatedText = fallbackTranslation(for: text)
+        phase = .loading
+        translatedText = ""
+        translationCandidates = []
+        if sourceLanguage.isAuto {
+            detectedLanguage = nil
+        }
+
+        let request = TranslationRequest(text: text, source: sourceLanguage, target: targetLanguage)
+        let service = activeService
+        translationTask = Task {
+            do {
+                let result = try await service.translate(request)
+                guard !Task.isCancelled else { return }
+                translatedText = result.text
+                translationCandidates = [result.text] + result.alternatives.filter { $0 != result.text }
+                detectedLanguage = sourceLanguage.isAuto ? result.detectedLanguage : nil
+                phase = .idle
+            } catch is CancellationError {
+            } catch {
+                guard !Task.isCancelled else { return }
+                phase = .failed((error as? TranslationError) ?? .network)
+            }
         }
     }
 
     func swapLanguages() {
-        let oldSource = sourceLanguage
+        let newTarget: Language
+        if sourceLanguage.isAuto {
+            // 自动检测尚未得出结果时无从交换。
+            guard let detectedLanguage else { return }
+            newTarget = detectedLanguage
+        } else {
+            newTarget = sourceLanguage
+        }
         sourceLanguage = targetLanguage
-        targetLanguage = oldSource
+        targetLanguage = newTarget
         sourceText = translatedText
+        detectedLanguage = nil
         refreshTranslation()
     }
 
     func select(_ language: Language, for role: LanguageSelectionRole) {
         if role == .source {
+            if language != sourceLanguage {
+                detectedLanguage = nil
+            }
             sourceLanguage = language
         } else {
             targetLanguage = language
@@ -304,6 +382,7 @@ final class TranslationSession {
 
     func saveCurrent(favorite: Bool? = nil) {
         guard !sourceText.isEmpty, !translatedText.isEmpty else { return }
+        let sourceLanguage = resolvedSourceLanguage
         if let index = historyItems.firstIndex(where: {
             $0.source == sourceText
                 && $0.result == translatedText
@@ -339,22 +418,14 @@ final class TranslationSession {
     }
 
     func load(_ item: HistoryItem) {
+        translationTask?.cancel()
+        translationTask = nil
         sourceLanguage = item.sourceLanguage
         targetLanguage = item.targetLanguage
         sourceText = item.source
         translatedText = item.result
-    }
-
-    private func fallbackTranslation(for text: String) -> String {
-        switch targetLanguage.code {
-        case "en":
-            return "A natural translation of “\(text)”"
-        case "zh-Hans":
-            return "“\(text)” 的自然译文"
-        case "ja":
-            return "「\(text)」の自然な翻訳"
-        default:
-            return "[\(targetLanguage.nativeName)] \(text)"
-        }
+        translationCandidates = [item.result]
+        detectedLanguage = nil
+        phase = .idle
     }
 }

@@ -62,7 +62,8 @@ final class TranslationPrototypeUITests: XCTestCase {
 
         XCTAssertTrue(sourceEditor.waitForExistence(timeout: 3))
         XCTAssertTrue(wait(for: NSPredicate(format: "value == %@", "你好"), on: sourceEditor))
-        XCTAssertTrue(translationResult.isEnabled)
+        // 历史条目只保存主译文，没有备选译法，结果按钮保持禁用；断言译文内容被正确回填。
+        XCTAssertTrue(wait(for: NSPredicate(format: "value == %@", "Hello"), on: translationResult))
     }
 
     @MainActor
@@ -428,7 +429,10 @@ final class TranslationPrototypeUITests: XCTestCase {
         app.launchArguments = [
             "-AppleLanguages", "(zh-Hans)",
             "-AppleLocale", "zh_Hans_CN",
-            "--prototype-mode", mode
+            "--prototype-mode", mode,
+            // 固定演示译文并复位持久化偏好，UI 测试不碰真实网络、不受上次运行影响。
+            "--prototype-canned-translation",
+            "--prototype-reset-settings"
         ]
         if let sheet {
             app.launchArguments.append(contentsOf: ["--prototype-sheet", sheet])

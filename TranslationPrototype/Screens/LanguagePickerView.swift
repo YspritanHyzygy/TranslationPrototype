@@ -29,6 +29,10 @@ struct LanguagePickerView: View {
             ScrollView(showsIndicators: false) {
                 if hasSearchResults {
                     VStack(alignment: .leading, spacing: 8) {
+                        if showsAutoDetectRow {
+                            autoDetectCard
+                        }
+
                         if !filteredRecentLanguages.isEmpty {
                             languageSection("最近使用", languages: filteredRecentLanguages)
                         }
@@ -191,6 +195,27 @@ struct LanguagePickerView: View {
         .accessibilityIdentifier("languagePicker.emptyState")
     }
 
+    private var autoDetectCard: some View {
+        Button {
+            sourceSelection = .auto
+            dismiss()
+        } label: {
+            LanguageRow(language: .auto, isSelected: activeSelection == .auto)
+        }
+        .buttonStyle(.plain)
+        .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .softShadow(radius: 7, y: 2, opacity: 0.045)
+        .accessibilityLabel("自动检测，自动识别输入语言")
+        .accessibilityValue(activeSelection == .auto ? "已选择" : "")
+        .accessibilityHint("选择为翻译自语言")
+        .accessibilityIdentifier("languagePicker.language.auto")
+    }
+
+    /// 「自动检测」仅对源语言开放，目标语言列表保持不变。
+    private var showsAutoDetectRow: Bool {
+        effectiveRole == .source && matchesSearch(.auto)
+    }
+
     private var filteredRecentLanguages: [Language] {
         Language.recent.filter(matchesSearch)
     }
@@ -202,7 +227,7 @@ struct LanguagePickerView: View {
     }
 
     private var hasSearchResults: Bool {
-        !filteredRecentLanguages.isEmpty || !filteredLanguages.isEmpty
+        showsAutoDetectRow || !filteredRecentLanguages.isEmpty || !filteredLanguages.isEmpty
     }
 
     private func matchesSearch(_ language: Language) -> Bool {

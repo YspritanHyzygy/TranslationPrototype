@@ -18,8 +18,14 @@
 		01A000000000000000000109 /* LanguagePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000009 /* LanguagePickerView.swift */; };
 		01A000000000000000000110 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000010 /* HistoryView.swift */; };
 		01A000000000000000000111 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000012 /* Assets.xcassets */; };
+		01A000000000000000000112 /* TranslationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000013 /* TranslationService.swift */; };
+		01A000000000000000000113 /* GoogleTranslateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000014 /* GoogleTranslateService.swift */; };
+		01A000000000000000000114 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000015 /* AppSettings.swift */; };
+		01A000000000000000000115 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000016 /* SettingsView.swift */; };
 		01B000000000000000000101 /* TranslationPrototypeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01B000000000000000000001 /* TranslationPrototypeUITests.swift */; };
 		01C000000000000000000101 /* TranslationSessionDraftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01C000000000000000000001 /* TranslationSessionDraftTests.swift */; };
+		01C000000000000000000102 /* GoogleTranslateServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01C000000000000000000002 /* GoogleTranslateServiceTests.swift */; };
+		01C000000000000000000103 /* AppSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01C000000000000000000003 /* AppSettingsTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -52,9 +58,15 @@
 		01A000000000000000000010 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		01A000000000000000000011 /* TranslationPrototype.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TranslationPrototype.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		01A000000000000000000012 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		01A000000000000000000013 /* TranslationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationService.swift; sourceTree = "<group>"; };
+		01A000000000000000000014 /* GoogleTranslateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleTranslateService.swift; sourceTree = "<group>"; };
+		01A000000000000000000015 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		01A000000000000000000016 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		01B000000000000000000001 /* TranslationPrototypeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationPrototypeUITests.swift; sourceTree = "<group>"; };
 		01B000000000000000000011 /* TranslationPrototypeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TranslationPrototypeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		01C000000000000000000001 /* TranslationSessionDraftTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationSessionDraftTests.swift; sourceTree = "<group>"; };
+		01C000000000000000000002 /* GoogleTranslateServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleTranslateServiceTests.swift; sourceTree = "<group>"; };
+		01C000000000000000000003 /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
 		01C000000000000000000011 /* TranslationPrototypeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TranslationPrototypeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -101,6 +113,9 @@
 				01A000000000000000000003 /* Theme.swift */,
 				01A000000000000000000004 /* Models.swift */,
 				01A000000000000000000005 /* Components.swift */,
+				01A000000000000000000013 /* TranslationService.swift */,
+				01A000000000000000000014 /* GoogleTranslateService.swift */,
+				01A000000000000000000015 /* AppSettings.swift */,
 				01A000000000000000000012 /* Assets.xcassets */,
 				01A000000000000000000033 /* Screens */,
 			);
@@ -125,6 +140,7 @@
 				01A000000000000000000008 /* CameraTranslateView.swift */,
 				01A000000000000000000009 /* LanguagePickerView.swift */,
 				01A000000000000000000010 /* HistoryView.swift */,
+				01A000000000000000000016 /* SettingsView.swift */,
 			);
 			path = Screens;
 			sourceTree = "<group>";
@@ -141,6 +157,8 @@
 			isa = PBXGroup;
 			children = (
 				01C000000000000000000001 /* TranslationSessionDraftTests.swift */,
+				01C000000000000000000002 /* GoogleTranslateServiceTests.swift */,
+				01C000000000000000000003 /* AppSettingsTests.swift */,
 			);
 			path = TranslationPrototypeTests;
 			sourceTree = "<group>";
@@ -285,6 +303,10 @@
 				01A000000000000000000108 /* CameraTranslateView.swift in Sources */,
 				01A000000000000000000109 /* LanguagePickerView.swift in Sources */,
 				01A000000000000000000110 /* HistoryView.swift in Sources */,
+				01A000000000000000000112 /* TranslationService.swift in Sources */,
+				01A000000000000000000113 /* GoogleTranslateService.swift in Sources */,
+				01A000000000000000000114 /* AppSettings.swift in Sources */,
+				01A000000000000000000115 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -301,6 +323,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				01C000000000000000000101 /* TranslationSessionDraftTests.swift in Sources */,
+				01C000000000000000000102 /* GoogleTranslateServiceTests.swift in Sources */,
+				01C000000000000000000103 /* AppSettingsTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

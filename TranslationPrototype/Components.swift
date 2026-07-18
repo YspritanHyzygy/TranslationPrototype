@@ -24,6 +24,8 @@ struct IconCircleButton: View {
 struct LanguagePairBar: View {
     let source: Language
     let target: Language
+    var sourceDisplayName: String? = nil
+    var isSwapEnabled: Bool = true
     let onSourceTap: () -> Void
     let onTargetTap: () -> Void
     let onSwap: () -> Void
@@ -31,9 +33,11 @@ struct LanguagePairBar: View {
     var body: some View {
         HStack(spacing: 0) {
             Button(action: onSourceTap) {
-                Text(source.nativeName)
+                Text(sourceDisplayName ?? source.nativeName)
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(AppTheme.ink)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 11)
             }
@@ -50,9 +54,12 @@ struct LanguagePairBar: View {
                             .background(AppTheme.terracotta, in: Circle())
                             .softShadow(radius: 10, y: 5, opacity: 0.22)
                     }
+                    .opacity(isSwapEnabled ? 1 : 0.4)
             }
             .buttonStyle(.plain)
+            .disabled(!isSwapEnabled)
             .accessibilityLabel(Text("交换语言"))
+            .accessibilityHint(Text(isSwapEnabled ? "" : "自动检测出语言后可交换"))
             .accessibilityIdentifier("language-pair-swap-button")
 
             Button(action: onTargetTap) {

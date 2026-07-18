@@ -3,24 +3,32 @@ import UIKit
 
 struct AppShell: View {
     @State private var selectedMode: AppMode
-    @State private var session = TranslationSession()
+    @State private var settings: AppSettings
+    @State private var session: TranslationSession
     @State private var sheetDestination: SheetDestination?
 
     init() {
         let configuration = PrototypeLaunchConfiguration.current
+        let settings = AppSettings()
         _selectedMode = State(initialValue: configuration.mode)
         _sheetDestination = State(initialValue: configuration.sheet)
+        _settings = State(initialValue: settings)
+        _session = State(initialValue: TranslationSession(
+            settings: settings,
+            service: configuration.useCannedTranslation ? CannedTranslationService() : nil
+        ))
     }
 
     var body: some View {
         TabView(selection: $selectedMode) {
             TextTranslateView(
                 session: session,
+                settings: settings,
                 onSwap: swapLanguages,
                 onPickSource: { sheetDestination = .language(.source) },
                 onPickTarget: { sheetDestination = .language(.target) },
                 onHistory: { sheetDestination = .history },
-                onSettings: { sheetDestination = .language(.target) }
+                onSettings: { sheetDestination = .settings }
             )
             .tabItem {
                 Label(AppMode.text.title, systemImage: AppMode.text.systemImage)
@@ -60,6 +68,12 @@ struct AppShell: View {
         .sheet(item: $sheetDestination) { destination in
             sheetView(for: destination)
         }
+        .onChange(of: session.sourceLanguage) { _, newValue in
+            settings.lastSourceLanguageCode = newValue.code
+        }
+        .onChange(of: session.targetLanguage) { _, newValue in
+            settings.lastTargetLanguageCode = newValue.code
+        }
     }
 
     @ViewBuilder
@@ -79,6 +93,11 @@ struct AppShell: View {
                 session.load(item)
                 selectedMode = .text
             }
+                .presentationDetents([.large])
+                .presentationDragIndicator(.hidden)
+                .presentationCornerRadius(30)
+        case .settings:
+            SettingsView(settings: settings)
                 .presentationDetents([.large])
                 .presentationDragIndicator(.hidden)
                 .presentationCornerRadius(30)
@@ -115,6 +134,7 @@ struct AppShell: View {
 private struct PrototypeLaunchConfiguration {
     let mode: AppMode
     let sheet: SheetDestination?
+    let useCannedTranslation: Bool
 
     static var current: PrototypeLaunchConfiguration {
 #if DEBUG
@@ -127,11 +147,16 @@ private struct PrototypeLaunchConfiguration {
         case "history": sheet = .history
         case "language-source": sheet = .language(.source)
         case "language-target": sheet = .language(.target)
+        case "settings": sheet = .settings
         default: sheet = nil
         }
-        return PrototypeLaunchConfiguration(mode: mode, sheet: sheet)
+        return PrototypeLaunchConfiguration(
+            mode: mode,
+            sheet: sheet,
+            useCannedTranslation: arguments.contains("--prototype-canned-translation")
+        )
 #else
-        return PrototypeLaunchConfiguration(mode: .text, sheet: nil)
+        return PrototypeLaunchConfiguration(mode: .text, sheet: nil, useCannedTranslation: false)
 #endif
     }
 
