@@ -6,10 +6,12 @@ struct AppShell: View {
     @State private var settings: AppSettings
     @State private var session: TranslationSession
     @State private var sheetDestination: SheetDestination?
+    private let usesCannedTranslation: Bool
 
     init() {
         let configuration = PrototypeLaunchConfiguration.current
         let settings = AppSettings()
+        usesCannedTranslation = configuration.useCannedTranslation
         _selectedMode = State(initialValue: configuration.mode)
         _sheetDestination = State(initialValue: configuration.sheet)
         _settings = State(initialValue: settings)
@@ -74,6 +76,22 @@ struct AppShell: View {
         .onChange(of: session.targetLanguage) { _, newValue in
             settings.lastTargetLanguageCode = newValue.code
         }
+#if DEBUG
+        // UI 测试的固定演示译文模式必须一眼可辨，避免误当成真实翻译。
+        .overlay(alignment: .top) {
+            if usesCannedTranslation {
+                Text("演示译文模式 · 未连接翻译服务")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(AppTheme.ink.opacity(0.72), in: Capsule())
+                    .padding(.top, 2)
+                    .allowsHitTesting(false)
+                    .accessibilityIdentifier("canned-translation-badge")
+            }
+        }
+#endif
     }
 
     @ViewBuilder
