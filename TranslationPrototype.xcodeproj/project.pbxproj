@@ -18,6 +18,7 @@
 		01A000000000000000000109 /* LanguagePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000009 /* LanguagePickerView.swift */; };
 		01A000000000000000000110 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000010 /* HistoryView.swift */; };
 		01A000000000000000000111 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000012 /* Assets.xcassets */; };
+		01A000000000000000000116 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000017 /* AppIcon.icon */; };
 		01A000000000000000000112 /* TranslationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000013 /* TranslationService.swift */; };
 		01A000000000000000000113 /* GoogleTranslateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000014 /* GoogleTranslateService.swift */; };
 		01A000000000000000000114 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000015 /* AppSettings.swift */; };
@@ -58,6 +59,7 @@
 		01A000000000000000000010 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		01A000000000000000000011 /* TranslationPrototype.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TranslationPrototype.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		01A000000000000000000012 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		01A000000000000000000017 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		01A000000000000000000013 /* TranslationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationService.swift; sourceTree = "<group>"; };
 		01A000000000000000000014 /* GoogleTranslateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleTranslateService.swift; sourceTree = "<group>"; };
 		01A000000000000000000015 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
@@ -116,6 +118,7 @@
 				01A000000000000000000013 /* TranslationService.swift */,
 				01A000000000000000000014 /* GoogleTranslateService.swift */,
 				01A000000000000000000015 /* AppSettings.swift */,
+				01A000000000000000000017 /* AppIcon.icon */,
 				01A000000000000000000012 /* Assets.xcassets */,
 				01A000000000000000000033 /* Screens */,
 			);
@@ -269,6 +272,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				01A000000000000000000111 /* Assets.xcassets in Resources */,
+				01A000000000000000000116 /* AppIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -464,6 +468,7 @@
 		01A000000000000000000082 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -496,6 +501,7 @@
 		01A000000000000000000083 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;

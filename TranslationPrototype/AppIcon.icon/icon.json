@@ -1,0 +1,43 @@
+{
+  "color-space-for-untagged-svg-colors" : "display-p3",
+  "fill" : {
+    "solid" : "display-p3:0.92432,0.91260,0.87354,1.00000"
+  },
+  "groups" : [
+    {
+      "blend-mode" : "normal",
+      "blur-material" : null,
+      "layers" : [
+        {
+          "blend-mode" : "lighten",
+          "fill" : "automatic",
+          "glass" : true,
+          "image-name" : "译.png",
+          "name" : "译",
+          "opacity" : 0.86,
+          "position" : {
+            "scale" : 0.48,
+            "translation-in-points" : [
+              8.639999999999986,
+              3.3600000000000136
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.6
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.2
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}
