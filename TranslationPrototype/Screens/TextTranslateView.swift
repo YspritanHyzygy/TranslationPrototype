@@ -1,5 +1,6 @@
 import AVFoundation
 import Combine
+import GameController
 import OSLog
 import SwiftUI
 import UIKit
@@ -59,8 +60,18 @@ struct TextTranslateView: View {
                                 .zIndex(1)
 
                             if !isEditingSource {
+                                // Insertion inherits the ambient collapse
+                                // transaction so the group's position and fade
+                                // ride the shrinking card instead of snapping
+                                // to the final layout at full opacity while
+                                // the card is still closing over it. Removal
+                                // keeps the quick fade — the expanding card
+                                // covers it under its own zIndex.
                                 resultGroup
-                                    .transition(.opacity.animation(motionProfile.contentFade))
+                                    .transition(.asymmetric(
+                                        insertion: .opacity,
+                                        removal: .opacity.animation(motionProfile.contentFade)
+                                    ))
                             }
                         }
                         .padding(.horizontal, 18)
@@ -561,10 +572,18 @@ struct TextTranslateView: View {
     private func scheduleExpansionPrimeFallback() {
         cancelPendingPrime()
         pendingPrimeTask = Task { @MainActor in
-            // No keyboard frame within a beat (hardware keyboard, or none at
-            // all): expand to the full no-keyboard height on our own.
+            // The keyboard's end frame is the preferred primer. With a
+            // hardware keyboard attached no software keyboard is coming, so
+            // expand to the full height after one beat. Without one, the
+            // notification always arrives — but a cold keyboard process can
+            // need several hundred ms, so wait it out rather than launching
+            // toward the wrong (full) height and folding back.
             try? await Task.sleep(nanoseconds: 150_000_000)
             guard !Task.isCancelled else { return }
+            if GCKeyboard.coalesced == nil, !expansionIsPrimed {
+                try? await Task.sleep(nanoseconds: 550_000_000)
+                guard !Task.isCancelled else { return }
+            }
             pendingPrimeTask = nil
             guard isEditingSource, !expansionIsPrimed else { return }
             if motionProfile.reducesMotion {
