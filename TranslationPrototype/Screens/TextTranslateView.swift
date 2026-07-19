@@ -60,16 +60,17 @@ struct TextTranslateView: View {
                                 .zIndex(1)
 
                             if !isEditingSource {
-                                // Insertion inherits the ambient collapse
-                                // transaction so the group's position and fade
-                                // ride the shrinking card instead of snapping
-                                // to the final layout at full opacity while
-                                // the card is still closing over it. Removal
-                                // keeps the quick fade — the expanding card
-                                // covers it under its own zIndex.
+                                // Staged reveal: the inserted group sits at
+                                // its final layout, so any fade that runs
+                                // while the card is still closing reads as
+                                // the translation popping in underneath it.
+                                // Hold it invisible until the card has
+                                // mostly settled, then fade. Removal keeps
+                                // the quick fade — the expanding card covers
+                                // it under its own zIndex.
                                 resultGroup
                                     .transition(.asymmetric(
-                                        insertion: .opacity,
+                                        insertion: .opacity.animation(motionProfile.resultReveal),
                                         removal: .opacity.animation(motionProfile.contentFade)
                                     ))
                             }
@@ -914,6 +915,14 @@ private struct TextEntryMotionProfile {
 
     var contentFade: Animation {
         .easeOut(duration: reducesMotion ? 0.12 : 0.16)
+    }
+
+    // Timed against collapseAnimation (0.32s): the card has visually settled
+    // by ~0.18s, so the translation surfaces just as the motion quiets down.
+    var resultReveal: Animation {
+        reducesMotion
+            ? contentFade
+            : .easeOut(duration: 0.2).delay(0.18)
     }
 
     var headerFade: Animation {
