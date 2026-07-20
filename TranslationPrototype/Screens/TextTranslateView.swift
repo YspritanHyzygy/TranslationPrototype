@@ -665,7 +665,14 @@ struct TextTranslateView: View {
         endTransitionSignpost(markStable: false)
         beginTransitionSignpost()
         beginMotionProbe(direction: .exiting)
-        sourceIsFocused = false
+        // Dropping focus in the same frame as the collapse commit makes the
+        // text view re-lay its content against the mid-commit geometry — the
+        // text renders one frame displaced and gets dragged back by the
+        // spring. Resign on the next runloop turn instead, once the collapse
+        // transaction has established its animation state.
+        Task { @MainActor in
+            sourceIsFocused = false
+        }
 
         if motionProfile.reducesMotion {
             withNoAnimation {
