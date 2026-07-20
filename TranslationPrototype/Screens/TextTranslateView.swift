@@ -59,21 +59,29 @@ struct TextTranslateView: View {
                                 .frame(height: focusedSourceCardHeight(expandedIn: expandedProxy))
                                 .zIndex(1)
 
-                            if !isEditingSource {
-                                // Staged reveal: the inserted group sits at
-                                // its final layout, so any fade that runs
-                                // while the card is still closing reads as
-                                // the translation popping in underneath it.
-                                // Hold it invisible until the card has
-                                // mostly settled, then fade. Removal keeps
-                                // the quick fade — the expanding card covers
-                                // it under its own zIndex.
-                                resultGroup
-                                    .transition(.asymmetric(
-                                        insertion: .opacity.animation(motionProfile.resultReveal),
-                                        removal: .opacity.animation(motionProfile.contentFade)
-                                    ))
-                            }
+                            // Always in the tree; visibility is an explicit,
+                            // value-scoped opacity. Structural insert/remove
+                            // transitions kept getting their exit copy frozen
+                            // mid-fade by concurrent keyboard-notification
+                            // transactions (third-party keyboards fire several
+                            // frame changes in quick succession), stranding a
+                            // half-faded ghost below the editing card. A
+                            // resident view has no exit copy to freeze, and
+                            // riding the real layout keeps it glued below the
+                            // card through the collapse. The reveal stays
+                            // staged: hidden while the card closes, fading in
+                            // once it settles; hiding uses the quick fade
+                            // under the expanding card's zIndex.
+                            resultGroup
+                                .opacity(isEditingSource ? 0 : 1)
+                                .allowsHitTesting(!isEditingSource)
+                                .accessibilityHidden(isEditingSource)
+                                .animation(
+                                    isEditingSource
+                                        ? motionProfile.contentFade
+                                        : motionProfile.resultReveal,
+                                    value: isEditingSource
+                                )
                         }
                         .padding(.horizontal, 18)
                         .padding(.top, 16)
