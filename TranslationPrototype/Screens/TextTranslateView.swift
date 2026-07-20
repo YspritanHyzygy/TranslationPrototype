@@ -932,12 +932,14 @@ private struct TextEntryMotionProfile {
         .easeOut(duration: reducesMotion ? 0.12 : 0.16)
     }
 
-    // Timed against collapseAnimation (0.32s): the card has visually settled
-    // by ~0.18s, so the translation surfaces just as the motion quiets down.
+    // Timed against collapseAnimation (0.32s): the card has cleared the
+    // result's area by ~0.13s, so the fade can start just behind that —
+    // opacity is still low while the last of the travel finishes, and the
+    // translation reads as surfacing the moment the card lands.
     var resultReveal: Animation {
         reducesMotion
             ? contentFade
-            : .easeOut(duration: 0.2).delay(0.18)
+            : .easeOut(duration: 0.18).delay(0.12)
     }
 
     var headerFade: Animation {
