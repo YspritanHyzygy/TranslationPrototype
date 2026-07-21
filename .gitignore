@@ -6,3 +6,6 @@ DerivedData/
 xcuserdata/
 *.xccheckout
 *.xcscmblueprint
+.claude/
+*.xcresult
+archive/
