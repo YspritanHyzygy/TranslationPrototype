@@ -90,7 +90,7 @@ final class AppSettings {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
 #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--prototype-reset-settings") {
+        if ProcessInfo.processInfo.arguments.contains("--uitest-reset-settings") {
             [Self.engineKey, Self.appearanceKey, Self.autoSpeakKey, Self.voicePlaybackKey, Self.sourceLanguageKey, Self.targetLanguageKey]
                 .forEach(defaults.removeObject(forKey:))
         }

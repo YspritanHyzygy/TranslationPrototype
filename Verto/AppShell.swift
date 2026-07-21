@@ -11,7 +11,7 @@ struct AppShell: View {
     private let usesCannedTranslation: Bool
 
     init() {
-        let configuration = PrototypeLaunchConfiguration.current
+        let configuration = UITestLaunchConfiguration.current
         let settings = AppSettings()
         usesCannedTranslation = configuration.useCannedTranslation
         _selectedMode = State(initialValue: configuration.mode)
@@ -191,18 +191,18 @@ struct AppShell: View {
     AppShell()
 }
 
-private struct PrototypeLaunchConfiguration {
+private struct UITestLaunchConfiguration {
     let mode: AppMode
     let sheet: SheetDestination?
     let useCannedTranslation: Bool
     let useCannedSpeech: Bool
 
-    static var current: PrototypeLaunchConfiguration {
+    static var current: UITestLaunchConfiguration {
 #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
-        let mode = value(after: "--prototype-mode", in: arguments)
+        let mode = value(after: "--uitest-mode", in: arguments)
             .flatMap(AppMode.init(rawValue:)) ?? .text
-        let sheetValue = value(after: "--prototype-sheet", in: arguments)
+        let sheetValue = value(after: "--uitest-sheet", in: arguments)
         let sheet: SheetDestination?
         switch sheetValue {
         case "history": sheet = .history
@@ -211,14 +211,14 @@ private struct PrototypeLaunchConfiguration {
         case "settings": sheet = .settings
         default: sheet = nil
         }
-        return PrototypeLaunchConfiguration(
+        return UITestLaunchConfiguration(
             mode: mode,
             sheet: sheet,
-            useCannedTranslation: arguments.contains("--prototype-canned-translation"),
-            useCannedSpeech: arguments.contains("--prototype-canned-speech")
+            useCannedTranslation: arguments.contains("--uitest-canned-translation"),
+            useCannedSpeech: arguments.contains("--uitest-canned-speech")
         )
 #else
-        return PrototypeLaunchConfiguration(
+        return UITestLaunchConfiguration(
             mode: .text,
             sheet: nil,
             useCannedTranslation: false,

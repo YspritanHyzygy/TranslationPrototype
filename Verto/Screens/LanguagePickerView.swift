@@ -67,7 +67,7 @@ struct LanguagePickerView: View {
             }
 
             Spacer()
-            PrototypeCloseButton { dismiss() }
+            SheetCloseButton { dismiss() }
                 .accessibilityLabel("关闭语言选择")
                 .accessibilityIdentifier("languagePicker.closeButton")
         }

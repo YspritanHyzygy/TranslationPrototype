@@ -1,6 +1,6 @@
 import XCTest
 
-final class TranslationPrototypeUITests: XCTestCase {
+final class VertoUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
     }
@@ -328,7 +328,7 @@ final class TranslationPrototypeUITests: XCTestCase {
         XCTAssertEqual(microphone.label, "开始聆听")
 
         microphone.tap()
-        // 脚本化语音（--prototype-canned-speech）：volatile → final，
+        // 脚本化语音（--uitest-canned-speech）：volatile → final，
         // 定稿后按固定译文表提交为对话气泡，随后自动续听。
         let committedOriginal = firstElement(containingLabel: "Good morning", in: app)
         XCTAssertTrue(committedOriginal.waitForExistence(timeout: 6))
@@ -454,15 +454,15 @@ final class TranslationPrototypeUITests: XCTestCase {
         app.launchArguments = [
             "-AppleLanguages", "(zh-Hans)",
             "-AppleLocale", "zh_Hans_CN",
-            "--prototype-mode", mode,
+            "--uitest-mode", mode,
             // 固定演示译文/脚本化语音并复位持久化偏好，
             // UI 测试不碰真实网络、麦克风与 TTS，不受上次运行影响。
-            "--prototype-canned-translation",
-            "--prototype-canned-speech",
-            "--prototype-reset-settings"
+            "--uitest-canned-translation",
+            "--uitest-canned-speech",
+            "--uitest-reset-settings"
         ]
         if let sheet {
-            app.launchArguments.append(contentsOf: ["--prototype-sheet", sheet])
+            app.launchArguments.append(contentsOf: ["--uitest-sheet", sheet])
         }
         if reduceMotion {
             app.launchArguments.append("--ui-testing-reduce-motion")

@@ -1,5 +1,5 @@
 import XCTest
-@testable import TranslationPrototype
+@testable import Verto
 
 private struct MockTranslationService: TranslationService {
     let handler: @Sendable (TranslationRequest) async throws -> TranslationResult

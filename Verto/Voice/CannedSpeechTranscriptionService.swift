@@ -8,7 +8,7 @@ final class SilentSpeechSynthesizer: SpeechSynthesizing {
     func stop() {}
 }
 
-/// UI 测试用的脚本化识别：--prototype-canned-speech 注入，零真实音频/权限，
+/// UI 测试用的脚本化识别：--uitest-canned-speech 注入，零真实音频/权限，
 /// 输出固定 volatile → final 序列；final 文本与 CannedTranslationService 的
 /// 固定译文表对齐，保证断言稳定。自动检测模式（多语言）下按段轮换语言，
 /// 演示双语无缝对话；同一语言多次开始按脚本轮换。

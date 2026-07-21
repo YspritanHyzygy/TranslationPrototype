@@ -1,5 +1,5 @@
 import XCTest
-@testable import TranslationPrototype
+@testable import Verto
 
 @MainActor
 private final class MockAppleTranslating: AppleTranslating {

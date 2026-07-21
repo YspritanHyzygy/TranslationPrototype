@@ -113,7 +113,7 @@ final class TranslationMemoryCache {
     }
 }
 
-/// 原型阶段的本地演示译文，UI 测试通过 --prototype-canned-translation 注入，
+/// 本地演示译文，UI 测试通过 --uitest-canned-translation 注入，
 /// 保持既有测试断言的固定输出。
 struct CannedTranslationService: TranslationService {
     func translate(_ request: TranslationRequest) async throws -> TranslationResult {

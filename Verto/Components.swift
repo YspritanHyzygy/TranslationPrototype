@@ -117,7 +117,7 @@ struct SectionLabel: View {
 }
 
 struct WaveBars: View {
-    /// nil = 原型固定关键帧循环；非 nil = 实测麦克风电平驱动（线性 RMS）。
+    /// nil = 演示用固定关键帧循环；非 nil = 实测麦克风电平驱动（线性 RMS）。
     var level: Float? = nil
 
     @State private var animate = false
@@ -183,7 +183,7 @@ struct TextActionIcon: View {
     }
 }
 
-struct PrototypeCloseButton: View {
+struct SheetCloseButton: View {
     let action: () -> Void
 
     var body: some View {

@@ -47,7 +47,7 @@ struct SettingsView: View {
                 .foregroundStyle(AppTheme.ink)
 
             Spacer()
-            PrototypeCloseButton { dismiss() }
+            SheetCloseButton { dismiss() }
                 .accessibilityLabel("关闭设置")
                 .accessibilityIdentifier("settings.closeButton")
         }
@@ -154,7 +154,7 @@ struct SettingsView: View {
     }
 
     private var footer: some View {
-        Text("译境 · 原型版本 1.0")
+        Text("译境 · 版本 1.0")
             .font(.system(size: 12, weight: .medium))
             .foregroundStyle(AppTheme.faint)
             .frame(maxWidth: .infinity)

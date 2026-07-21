@@ -1,7 +1,7 @@
 import AVFoundation
 import Speech
 import XCTest
-@testable import TranslationPrototype
+@testable import Verto
 
 /// 诊断探针（临时）：打印当前运行环境（模拟器/真机）各识别路径的真实可用性。
 final class SpeechAvailabilityProbeTests: XCTestCase {

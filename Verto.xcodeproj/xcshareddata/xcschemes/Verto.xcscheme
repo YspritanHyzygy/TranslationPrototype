@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "01A000000000000000000040"
-               BuildableName = "TranslationPrototype.app"
-               BlueprintName = "TranslationPrototype"
-               ReferencedContainer = "container:TranslationPrototype.xcodeproj">
+               BuildableName = "Verto.app"
+               BlueprintName = "Verto"
+               ReferencedContainer = "container:Verto.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -30,9 +30,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "01C000000000000000000040"
-               BuildableName = "TranslationPrototypeTests.xctest"
-               BlueprintName = "TranslationPrototypeTests"
-               ReferencedContainer = "container:TranslationPrototype.xcodeproj">
+               BuildableName = "VertoTests.xctest"
+               BlueprintName = "VertoTests"
+               ReferencedContainer = "container:Verto.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -44,9 +44,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "01B000000000000000000040"
-               BuildableName = "TranslationPrototypeUITests.xctest"
-               BlueprintName = "TranslationPrototypeUITests"
-               ReferencedContainer = "container:TranslationPrototype.xcodeproj">
+               BuildableName = "VertoUITests.xctest"
+               BlueprintName = "VertoUITests"
+               ReferencedContainer = "container:Verto.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -63,9 +63,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "01C000000000000000000040"
-               BuildableName = "TranslationPrototypeTests.xctest"
-               BlueprintName = "TranslationPrototypeTests"
-               ReferencedContainer = "container:TranslationPrototype.xcodeproj">
+               BuildableName = "VertoTests.xctest"
+               BlueprintName = "VertoTests"
+               ReferencedContainer = "container:Verto.xcodeproj">
             </BuildableReference>
          </TestableReference>
          <TestableReference
@@ -74,9 +74,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "01B000000000000000000040"
-               BuildableName = "TranslationPrototypeUITests.xctest"
-               BlueprintName = "TranslationPrototypeUITests"
-               ReferencedContainer = "container:TranslationPrototype.xcodeproj">
+               BuildableName = "VertoUITests.xctest"
+               BlueprintName = "VertoUITests"
+               ReferencedContainer = "container:Verto.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -96,9 +96,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "01A000000000000000000040"
-            BuildableName = "TranslationPrototype.app"
-            BlueprintName = "TranslationPrototype"
-            ReferencedContainer = "container:TranslationPrototype.xcodeproj">
+            BuildableName = "Verto.app"
+            BlueprintName = "Verto"
+            ReferencedContainer = "container:Verto.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -113,9 +113,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "01A000000000000000000040"
-            BuildableName = "TranslationPrototype.app"
-            BlueprintName = "TranslationPrototype"
-            ReferencedContainer = "container:TranslationPrototype.xcodeproj">
+            BuildableName = "Verto.app"
+            BlueprintName = "Verto"
+            ReferencedContainer = "container:Verto.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

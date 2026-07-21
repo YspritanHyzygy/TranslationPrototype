@@ -41,7 +41,7 @@ struct HistoryView: View {
                 .tracking(-0.5)
                 .foregroundStyle(AppTheme.ink)
             Spacer()
-            PrototypeCloseButton { dismiss() }
+            SheetCloseButton { dismiss() }
                 .accessibilityIdentifier("history-close-button")
         }
         .padding(.horizontal, 22)

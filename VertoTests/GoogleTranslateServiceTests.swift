@@ -1,5 +1,5 @@
 import XCTest
-@testable import TranslationPrototype
+@testable import Verto
 
 final class GoogleTranslateServiceTests: XCTestCase {
 

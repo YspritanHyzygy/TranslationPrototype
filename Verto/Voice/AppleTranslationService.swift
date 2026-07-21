@@ -231,7 +231,7 @@ final class VoiceTranslationRouter: TranslationService, VolatileTranslationSuppo
     private let onEngineDecision: (@MainActor (String) -> Void)?
     private var applePairFailures: Set<String> = []
     private let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "TranslationPrototype",
+        subsystem: Bundle.main.bundleIdentifier ?? "Verto",
         category: "VoiceTranslation"
     )
 

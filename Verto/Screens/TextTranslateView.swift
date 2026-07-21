@@ -283,7 +283,7 @@ struct TextTranslateView: View {
 
                 Spacer()
 
-                Button(action: startPrototypeDictation) {
+                Button(action: startDemoDictation) {
                     Image(systemName: isDictating ? "waveform" : "mic")
                         .frame(width: 44, height: 44)
                 }
@@ -872,7 +872,7 @@ struct TextTranslateView: View {
         .accessibilityIdentifier(identifier)
     }
 
-    private func startPrototypeDictation() {
+    private func startDemoDictation() {
         guard !isDictating else { return }
         beginEditingIfNeeded()
         isDictating = true
@@ -992,7 +992,7 @@ private enum TextEntryMotionDirection: String {
 
 private enum TextEntryMotionTrace {
     static let signposter = OSSignposter(
-        subsystem: Bundle.main.bundleIdentifier ?? "TranslationPrototype",
+        subsystem: Bundle.main.bundleIdentifier ?? "Verto",
         category: "TextEntryMotion"
     )
 }
@@ -1315,7 +1315,7 @@ private struct AlternativeTranslationsView: View {
                     .font(.system(size: 24, weight: .bold))
                     .foregroundStyle(AppTheme.ink)
                 Spacer()
-                PrototypeCloseButton { dismiss() }
+                SheetCloseButton { dismiss() }
             }
 
             ForEach(Array(session.translationCandidates.enumerated()), id: \.offset) { index, alternative in

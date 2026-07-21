@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct TranslationPrototypeApp: App {
+struct VertoApp: App {
     var body: some Scene {
         WindowGroup {
             AppShell()
