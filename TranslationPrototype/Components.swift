@@ -12,7 +12,7 @@ struct IconCircleButton: View {
                 .frame(width: 38, height: 38)
                 .liquidGlass(in: Circle()) { content in
                     content
-                        .background(.white, in: Circle())
+                        .background(AppTheme.card, in: Circle())
                         .softShadow(radius: 5, y: 1, opacity: 0.06)
                 }
         }
@@ -73,7 +73,7 @@ struct LanguagePairBar: View {
             .accessibilityIdentifier("language-pair-target-button")
         }
         .padding(8)
-        .background(.white, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .softShadow(radius: 7, y: 2, opacity: 0.05)
     }
 }
@@ -99,7 +99,7 @@ struct LanguagePairPill: View {
         .buttonStyle(.plain)
         .padding(.horizontal, 17)
         .padding(.vertical, 10)
-        .background(.white, in: Capsule())
+        .background(AppTheme.card, in: Capsule())
         .softShadow(radius: 6, y: 2, opacity: 0.05)
     }
 }
@@ -194,7 +194,7 @@ struct PrototypeCloseButton: View {
                 .frame(width: 36, height: 36)
                 .liquidGlass(in: Circle()) { content in
                     content
-                        .background(Color(hex: 0xEDE8DF), in: Circle())
+                        .background(AppTheme.inset, in: Circle())
                 }
         }
         .buttonStyle(.plain)

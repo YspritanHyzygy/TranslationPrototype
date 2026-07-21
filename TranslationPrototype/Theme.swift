@@ -1,15 +1,49 @@
 import SwiftUI
+import UIKit
 
+/// 暖色"夜纸"调色板：深色不走中性灰，保持纸墨的棕色底调；
+/// 深色下卡片比纸面亮一档，用明度差代替阴影表达层级。
 enum AppTheme {
-    static let paper = Color(hex: 0xF7F4EF)
-    static let page = Color(hex: 0xE8E4DD)
-    static let ink = Color(hex: 0x1C1A17)
-    static let secondaryInk = Color(hex: 0x5C564D)
-    static let muted = Color(hex: 0x8A8276)
-    static let faint = Color(hex: 0xB9B0A2)
-    static let terracotta = Color(hex: 0xC2603F)
-    static let terracottaSoft = Color(hex: 0xF7ECE6)
-    static let divider = Color.black.opacity(0.06)
+    static let paper = Color(light: 0xF7F4EF, dark: 0x201D1A)
+    static let page = Color(light: 0xE8E4DD, dark: 0x171412)
+    /// 抬升的卡片面，取代散落各处的 .white 卡底。
+    static let card = Color(light: 0xFFFFFF, dark: 0x2B2723)
+    /// 凹陷底：分段控件轨道、关闭按钮圆底、"即将推出"胶囊。
+    static let inset = Color(light: 0xEAE5DB, dark: 0x161310)
+    static let ink = Color(light: 0x1C1A17, dark: 0xECE7DF)
+    static let secondaryInk = Color(light: 0x5C564D, dark: 0xC2BAAE)
+    static let muted = Color(light: 0x8A8276, dark: 0x9E968B)
+    static let faint = Color(light: 0xB9B0A2, dark: 0x6F675C)
+    /// 深色下提亮一档，否则赤陶在暗底上对比度不足。
+    static let terracotta = Color(light: 0xC2603F, dark: 0xD0714F)
+    /// 白字压在其上的赤陶填充面（气泡、按钮胶囊）：保持原深赤陶不提亮，
+    /// 否则白字对比度掉到 3:1 以下。图标类填充（≥3:1 即可）继续用 terracotta。
+    static let terracottaFill = Color(hex: 0xC2603F)
+    static let terracottaSoft = Color(light: 0xF7ECE6, dark: 0x322520)
+    /// 译文正文衬线字色。
+    static let resultInk = Color(light: 0x26221D, dark: 0xE4DED4)
+    /// 结果卡上复制/收藏/分享图标。
+    static let actionMuted = Color(light: 0xB79A8C, dark: 0xC9A288)
+    /// 赤陶气泡上的语言小标签。
+    static let bubbleAccentLabel = Color(light: 0xC99A85, dark: 0xD5A084)
+    /// 错误/重试文字。
+    static let alert = Color(light: 0xB4443C, dark: 0xE07A6C)
+    static let divider = Color(uiColor: UIColor { trait in
+        trait.userInterfaceStyle == .dark
+            ? UIColor.white.withAlphaComponent(0.08)
+            : UIColor.black.withAlphaComponent(0.06)
+    })
+}
+
+extension AppearanceMode {
+    /// nil = 跟随系统（不覆盖）。
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: nil
+        case .light: .light
+        case .dark: .dark
+        }
+    }
 }
 
 extension Color {
@@ -22,14 +56,35 @@ extension Color {
             opacity: alpha
         )
     }
+
+    /// 明暗自适应颜色；走 UIColor trait 回调，随系统外观和 preferredColorScheme 覆盖实时解析。
+    init(light: UInt, dark: UInt) {
+        self.init(uiColor: UIColor { trait in
+            let hex = trait.userInterfaceStyle == .dark ? dark : light
+            return UIColor(
+                red: CGFloat((hex >> 16) & 0xff) / 255,
+                green: CGFloat((hex >> 8) & 0xff) / 255,
+                blue: CGFloat(hex & 0xff) / 255,
+                alpha: 1
+            )
+        })
+    }
 }
 
 extension View {
+    /// 深色下黑影几乎不可见，层级主要靠 card/paper 明度差；阴影加深仅为叠层边缘辨识。
     func softShadow(radius: CGFloat = 10, y: CGFloat = 4, opacity: Double = 0.06) -> some View {
-        shadow(color: .black.opacity(opacity), radius: radius, x: 0, y: y)
+        shadow(
+            color: Color(uiColor: UIColor { trait in
+                UIColor.black.withAlphaComponent(
+                    trait.userInterfaceStyle == .dark ? min(opacity * 3, 0.5) : opacity
+                )
+            }),
+            radius: radius, x: 0, y: y
+        )
     }
 
-    func cardBackground(_ color: Color = .white, radius: CGFloat = 22) -> some View {
+    func cardBackground(_ color: Color = AppTheme.card, radius: CGFloat = 22) -> some View {
         background(color, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
             .softShadow(radius: 8, y: 2, opacity: 0.045)
     }

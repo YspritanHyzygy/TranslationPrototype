@@ -64,7 +64,7 @@ struct HistoryView: View {
             }
         }
         .padding(3)
-        .background(Color(hex: 0xEAE5DB), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(AppTheme.inset, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .padding(.horizontal, 18)
         .padding(.top, 14)
     }
@@ -91,7 +91,7 @@ struct HistoryView: View {
             .background {
                 if active {
                     RoundedRectangle(cornerRadius: 9, style: .continuous)
-                        .fill(.white)
+                        .fill(AppTheme.card)
                         .softShadow(radius: 4, y: 1, opacity: 0.06)
                 }
             }
@@ -111,7 +111,7 @@ struct HistoryView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 34)
-        .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .accessibilityIdentifier("history-empty-state")
     }
 
@@ -165,7 +165,7 @@ private struct HistoryCard: View {
                 Button(action: onToggleFavorite) {
                     Image(systemName: item.isFavorite ? "star.fill" : "star")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(item.isFavorite ? AppTheme.terracotta : Color(hex: 0xC9C0B2))
+                        .foregroundStyle(item.isFavorite ? AppTheme.terracotta : AppTheme.faint)
                         .frame(width: 32, height: 32)
                 }
                 .buttonStyle(.plain)
@@ -197,7 +197,7 @@ private struct HistoryCard: View {
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 12)
-        .cardBackground(.white, radius: 18)
+        .cardBackground(radius: 18)
     }
 }
 

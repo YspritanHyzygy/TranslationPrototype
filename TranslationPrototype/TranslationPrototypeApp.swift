@@ -5,7 +5,6 @@ struct TranslationPrototypeApp: App {
     var body: some Scene {
         WindowGroup {
             AppShell()
-                .preferredColorScheme(.light)
         }
     }
 }

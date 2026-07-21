@@ -82,7 +82,7 @@ struct LanguagePickerView: View {
             segment("翻译自", role: .source)
         }
         .padding(3)
-        .background(Color(hex: 0xEAE5DB), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(AppTheme.inset, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .padding(.horizontal, 18)
         .padding(.top, 16)
         .accessibilityElement(children: .contain)
@@ -108,7 +108,7 @@ struct LanguagePickerView: View {
                     Group {
                         if isActive {
                             RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                .fill(.white)
+                                .fill(AppTheme.card)
                                 .softShadow(radius: 4, y: 1, opacity: 0.06)
                         }
                     }
@@ -157,7 +157,7 @@ struct LanguagePickerView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
-        .background(.white, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .softShadow(radius: 5, y: 1, opacity: 0.04)
         .padding(.horizontal, 18)
         .padding(.top, 14)
@@ -203,7 +203,7 @@ struct LanguagePickerView: View {
             LanguageRow(language: .auto, isSelected: activeSelection == .auto)
         }
         .buttonStyle(.plain)
-        .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .softShadow(radius: 7, y: 2, opacity: 0.045)
         .accessibilityLabel("自动检测，自动识别输入语言")
         .accessibilityValue(activeSelection == .auto ? "已选择" : "")
@@ -278,7 +278,7 @@ struct LanguagePickerView: View {
                     }
                 }
             }
-            .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .softShadow(radius: 7, y: 2, opacity: 0.045)
         }
     }

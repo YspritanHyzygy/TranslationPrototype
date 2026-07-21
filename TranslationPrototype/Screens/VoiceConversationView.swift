@@ -88,7 +88,7 @@ struct VoiceConversationView: View {
                 .frame(width: 38, height: 38)
                 .liquidGlass(in: Circle()) { content in
                     content
-                        .background(.white, in: Circle())
+                        .background(AppTheme.card, in: Circle())
                         .softShadow(radius: 5, y: 1, opacity: 0.06)
                 }
         }
@@ -312,7 +312,7 @@ struct VoiceConversationView: View {
                 .frame(width: 54, height: 54)
                 .liquidGlass(interactive: false, in: Circle()) { content in
                     content
-                        .background(.white, in: Circle())
+                        .background(AppTheme.card, in: Circle())
                         .softShadow(radius: 7, y: 2, opacity: 0.07)
                 }
                 .overlay {
@@ -339,7 +339,7 @@ private struct ConversationBubble: View {
         VStack(alignment: turn.speaker == .source ? .leading : .trailing, spacing: 5) {
             Text(turn.language)
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(turn.speaker == .source ? AppTheme.faint : Color(hex: 0xC99A85))
+                .foregroundStyle(turn.speaker == .source ? AppTheme.faint : AppTheme.bubbleAccentLabel)
                 .padding(.horizontal, 4)
 
             HStack(alignment: .bottom, spacing: 8) {
@@ -373,7 +373,7 @@ private struct ConversationBubble: View {
                 } label: {
                     Text("翻译失败 · 轻点重试")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(turn.speaker == .source ? Color(hex: 0xB4443C) : .white)
+                        .foregroundStyle(turn.speaker == .source ? AppTheme.alert : .white)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("conversation-turn-retry")
@@ -383,7 +383,7 @@ private struct ConversationBubble: View {
         .padding(.vertical, 14)
         .frame(maxWidth: 310, alignment: .leading)
         .background(
-            turn.speaker == .source ? .white : AppTheme.terracotta,
+            turn.speaker == .source ? AppTheme.card : AppTheme.terracottaFill,
             in: UnevenRoundedRectangle(
                 topLeadingRadius: 20,
                 bottomLeadingRadius: turn.speaker == .source ? 6 : 20,
@@ -403,7 +403,7 @@ private struct ConversationBubble: View {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(AppTheme.muted)
                 .frame(width: 28, height: 28)
-                .background(.white, in: Circle())
+                .background(AppTheme.card, in: Circle())
                 .softShadow(radius: 5, y: 1, opacity: 0.06)
         }
         .buttonStyle(.plain)
@@ -422,7 +422,7 @@ private struct LiveConversationBubble: View {
         VStack(alignment: live.speaker == .source ? .leading : .trailing, spacing: 5) {
             Text(live.languageName)
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(live.speaker == .source ? AppTheme.faint : Color(hex: 0xC99A85))
+                .foregroundStyle(live.speaker == .source ? AppTheme.faint : AppTheme.bubbleAccentLabel)
                 .padding(.horizontal, 4)
 
             VStack(alignment: .leading, spacing: 7) {
@@ -441,7 +441,7 @@ private struct LiveConversationBubble: View {
             .padding(.vertical, 14)
             .frame(maxWidth: 310, alignment: .leading)
             .background(
-                live.speaker == .source ? .white : AppTheme.terracotta,
+                live.speaker == .source ? AppTheme.card : AppTheme.terracottaFill,
                 in: UnevenRoundedRectangle(
                     topLeadingRadius: 20,
                     bottomLeadingRadius: live.speaker == .source ? 6 : 20,

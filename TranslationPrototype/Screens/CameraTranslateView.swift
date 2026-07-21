@@ -198,7 +198,7 @@ struct CameraTranslateView: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 13)
-                    .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .shadow(color: .black.opacity(0.24), radius: 18, x: 0, y: 10)
                     .accessibilityElement(children: .combine)
                 }
@@ -242,7 +242,8 @@ struct CameraTranslateView: View {
                     .overlay {
                         if recognitionState == .recognizing {
                             ProgressView()
-                                .tint(AppTheme.ink)
+                                // 快门盘是固定白色的相机件，转圈也固定深色，不随 ink 自适应。
+                                .tint(Color(hex: 0x1C1A17))
                                 .frame(width: 58, height: 58)
                                 .background(.white, in: Circle())
                         } else {

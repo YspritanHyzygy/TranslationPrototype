@@ -100,6 +100,7 @@ struct AppShell: View {
             }
         }
         .tint(AppTheme.terracotta)
+        .preferredColorScheme(settings.appearanceMode.colorScheme)
         .onChange(of: selectedMode) { previousMode, newMode in
             if previousMode == .text, newMode != .text {
                 dismissKeyboard()
@@ -107,7 +108,9 @@ struct AppShell: View {
         }
         .sensoryFeedback(.selection, trigger: selectedMode)
         .sheet(item: $sheetDestination) { destination in
+            // sheet 是独立 presentation，不总是继承根部的 preferredColorScheme（同 tint 的怪癖），显式再套一层。
             sheetView(for: destination)
+                .preferredColorScheme(settings.appearanceMode.colorScheme)
         }
         .onChange(of: session.sourceLanguage) { _, newValue in
             settings.lastSourceLanguageCode = newValue.code
@@ -124,7 +127,7 @@ struct AppShell: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(AppTheme.ink.opacity(0.72), in: Capsule())
+                    .background(Color.black.opacity(0.72), in: Capsule())
                     .padding(.top, 2)
                     .allowsHitTesting(false)
                     .accessibilityIdentifier("canned-translation-badge")

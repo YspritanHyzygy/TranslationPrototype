@@ -103,7 +103,8 @@ struct TextTranslateView: View {
             if let toastText {
                 Text(toastText)
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.white)
+                    // ink 胶囊在深色下变浅米色，字色要跟着反转（paper 深色下是近黑）。
+                    .foregroundStyle(AppTheme.paper)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
                     .background(AppTheme.ink.opacity(0.9), in: Capsule())
@@ -116,7 +117,9 @@ struct TextTranslateView: View {
             motionProbeAccessibilityView
         }
         .sheet(item: $presentedSheet, onDismiss: restoreDraftFocusIfNeeded) { destination in
+            // sheet 是独立 presentation，不可靠继承根部的 preferredColorScheme，显式再套一层。
             sheetView(for: destination)
+                .preferredColorScheme(settings.appearanceMode.colorScheme)
         }
         .onAppear {
             // Warm the haptic engine off the transition's critical path; a
@@ -314,7 +317,7 @@ struct TextTranslateView: View {
 
     private func sourceCardSurface(strokeOpacity: Double) -> some View {
         TextEntrySurfaceShape(reportsMotionProbe: motionProbeIsEnabled)
-            .fill(.white)
+            .fill(AppTheme.card)
             .overlay {
                 TextEntrySurfaceShape(reportsMotionProbe: false)
                     .stroke(AppTheme.terracotta.opacity(strokeOpacity), lineWidth: 1.5)
@@ -332,7 +335,7 @@ struct TextTranslateView: View {
                 } label: {
                     Text("轻点结果可查看其他译法")
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Color(hex: 0xC4BBAC))
+                        .foregroundStyle(AppTheme.faint)
                         .padding(.top, 2)
                 }
                 .buttonStyle(.plain)
@@ -379,7 +382,7 @@ struct TextTranslateView: View {
                             .foregroundStyle(.white)
                             .padding(.horizontal, 18)
                             .padding(.vertical, 8)
-                            .background(AppTheme.terracotta, in: Capsule())
+                            .background(AppTheme.terracottaFill, in: Capsule())
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("translation-retry-button")
@@ -394,7 +397,7 @@ struct TextTranslateView: View {
                     Text(session.translatedText.isEmpty ? "译文会显示在这里" : session.translatedText)
                         .font(.system(size: 25, weight: .regular, design: .serif))
                         .lineSpacing(5)
-                        .foregroundStyle(session.translatedText.isEmpty ? AppTheme.faint : Color(hex: 0x26221D))
+                        .foregroundStyle(session.translatedText.isEmpty ? AppTheme.faint : AppTheme.resultInk)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .multilineTextAlignment(.leading)
                 }
@@ -416,14 +419,14 @@ struct TextTranslateView: View {
                     systemName: "doc.on.doc",
                     label: "复制译文",
                     identifier: "copy-result-button",
-                    color: Color(hex: 0xB79A8C),
+                    color: AppTheme.actionMuted,
                     action: copyResult
                 )
                 resultAction(
                     systemName: session.isCurrentFavorite ? "star.fill" : "star",
                     label: session.isCurrentFavorite ? "取消收藏" : "收藏译文",
                     identifier: "favorite-result-button",
-                    color: session.isCurrentFavorite ? AppTheme.terracotta : Color(hex: 0xB79A8C)
+                    color: session.isCurrentFavorite ? AppTheme.terracotta : AppTheme.actionMuted
                 ) {
                     session.toggleCurrentFavorite()
                     showToast(session.isCurrentFavorite ? "已收藏" : "已取消收藏")
@@ -432,7 +435,7 @@ struct TextTranslateView: View {
                 Spacer()
 
                 ShareLink(item: session.translatedText) {
-                    TextActionIcon(systemName: "square.and.arrow.up", color: Color(hex: 0xB79A8C))
+                    TextActionIcon(systemName: "square.and.arrow.up", color: AppTheme.actionMuted)
                         .frame(width: 36, height: 36)
                 }
                 .disabled(session.translatedText.isEmpty)
@@ -1333,7 +1336,7 @@ private struct AlternativeTranslationsView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .padding(14)
-                    .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("alternative-\(index + 1)")

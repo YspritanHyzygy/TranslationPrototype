@@ -24,6 +24,11 @@ struct SettingsView: View {
                         .padding(.top, 14)
                     preferenceCard
 
+                    SectionLabel(text: "外观")
+                        .padding(.horizontal, 4)
+                        .padding(.top, 14)
+                    appearanceCard
+
                     footer
                 }
                 .padding(.horizontal, 18)
@@ -73,7 +78,7 @@ struct SettingsView: View {
                 }
             }
         }
-        .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .softShadow(radius: 7, y: 2, opacity: 0.045)
     }
 
@@ -102,7 +107,36 @@ struct SettingsView: View {
                 }
             }
         }
-        .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .softShadow(radius: 7, y: 2, opacity: 0.045)
+    }
+
+    private var appearanceCard: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(AppearanceMode.allCases.enumerated()), id: \.element.id) { index, mode in
+                Button {
+                    select(mode)
+                } label: {
+                    SelectableRow(
+                        title: mode.displayName,
+                        subtitle: mode.subtitle,
+                        isSelected: settings.appearanceMode == mode
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(mode.displayName)，\(mode.subtitle)")
+                .accessibilityValue(settings.appearanceMode == mode ? "已选择" : "")
+                .accessibilityIdentifier("settings.appearance.\(mode.rawValue)")
+
+                if index < AppearanceMode.allCases.count - 1 {
+                    Rectangle()
+                        .fill(AppTheme.divider)
+                        .frame(height: 1)
+                        .padding(.leading, 16)
+                }
+            }
+        }
+        .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .softShadow(radius: 7, y: 2, opacity: 0.045)
     }
 
@@ -115,7 +149,7 @@ struct SettingsView: View {
             )
             .accessibilityIdentifier("settings.autoSpeakToggle")
         }
-        .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .softShadow(radius: 7, y: 2, opacity: 0.045)
     }
 
@@ -137,6 +171,12 @@ struct SettingsView: View {
         guard settings.voicePlaybackMode != mode else { return }
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         settings.voicePlaybackMode = mode
+    }
+
+    private func select(_ mode: AppearanceMode) {
+        guard settings.appearanceMode != mode else { return }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        settings.appearanceMode = mode
     }
 
     private func accessibilityValue(for engine: TranslationEngine) -> String {
@@ -168,7 +208,7 @@ private struct EngineRow: View {
                     .foregroundStyle(AppTheme.muted)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(Color(hex: 0xEAE5DB), in: Capsule())
+                    .background(AppTheme.inset, in: Capsule())
             } else if isSelected {
                 Image(systemName: "checkmark")
                     .font(.system(size: 18, weight: .bold))
