@@ -5,6 +5,8 @@ struct AppShell: View {
     @State private var selectedMode: AppMode
     @State private var settings: AppSettings
     @State private var session: TranslationSession
+    @State private var voiceController: VoiceConversationController
+    @State private var appleTranslationProvider: AppleTranslationProvider
     @State private var sheetDestination: SheetDestination?
     private let usesCannedTranslation: Bool
 
@@ -18,6 +20,35 @@ struct AppShell: View {
         _session = State(initialValue: TranslationSession(
             settings: settings,
             service: configuration.useCannedTranslation ? CannedTranslationService() : nil
+        ))
+
+        let provider = AppleTranslationProvider()
+        _appleTranslationProvider = State(initialValue: provider)
+        let voiceTranslation: any TranslationService = configuration.useCannedTranslation
+            ? CannedTranslationService()
+            : VoiceTranslationRouter(apple: provider, fallback: GoogleTranslateService())
+        var voiceTiming = VoiceConversationController.Timing()
+        let transcriptionFactory: @MainActor () async -> any VoiceTranscriptionService
+        var voiceSynthesizer: (any SpeechSynthesizing)?
+#if DEBUG
+        if configuration.useCannedSpeech {
+            transcriptionFactory = { CannedSpeechTranscriptionService() }
+            // 脚本化语音无停顿间隙，UI 测试用更短的端点窗口；不播真实 TTS。
+            voiceTiming.endpointVolatileStability = 0.3
+            voiceTiming.endpointSilenceDuration = 0
+            voiceSynthesizer = SilentSpeechSynthesizer()
+        } else {
+            transcriptionFactory = { await SpeechEngineFactory.makeService() }
+        }
+#else
+        transcriptionFactory = { await SpeechEngineFactory.makeService() }
+#endif
+        _voiceController = State(initialValue: VoiceConversationController(
+            settings: settings,
+            transcriptionFactory: transcriptionFactory,
+            translationService: voiceTranslation,
+            synthesizer: voiceSynthesizer,
+            timing: voiceTiming
         ))
     }
 
@@ -38,6 +69,8 @@ struct AppShell: View {
             .tag(AppMode.text)
 
             VoiceConversationView(
+                controller: voiceController,
+                settings: settings,
                 sourceLanguage: session.targetLanguage,
                 targetLanguage: session.sourceLanguage,
                 onPickSource: { sheetDestination = .language(.target) },
@@ -60,6 +93,12 @@ struct AppShell: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppTheme.paper.ignoresSafeArea())
+        // iOS 18–25 的系统翻译宿主：常驻根部、跨 tab 不销毁（stale-session fatalError 防线）。
+        .background(alignment: .bottomLeading) {
+            if #available(iOS 18.0, *) {
+                AppleTranslationHostView(provider: appleTranslationProvider)
+            }
+        }
         .tint(AppTheme.terracotta)
         .onChange(of: selectedMode) { previousMode, newMode in
             if previousMode == .text, newMode != .text {
@@ -153,6 +192,7 @@ private struct PrototypeLaunchConfiguration {
     let mode: AppMode
     let sheet: SheetDestination?
     let useCannedTranslation: Bool
+    let useCannedSpeech: Bool
 
     static var current: PrototypeLaunchConfiguration {
 #if DEBUG
@@ -171,10 +211,16 @@ private struct PrototypeLaunchConfiguration {
         return PrototypeLaunchConfiguration(
             mode: mode,
             sheet: sheet,
-            useCannedTranslation: arguments.contains("--prototype-canned-translation")
+            useCannedTranslation: arguments.contains("--prototype-canned-translation"),
+            useCannedSpeech: arguments.contains("--prototype-canned-speech")
         )
 #else
-        return PrototypeLaunchConfiguration(mode: .text, sheet: nil, useCannedTranslation: false)
+        return PrototypeLaunchConfiguration(
+            mode: .text,
+            sheet: nil,
+            useCannedTranslation: false,
+            useCannedSpeech: false
+        )
 #endif
     }
 

@@ -314,7 +314,7 @@ final class TranslationPrototypeUITests: XCTestCase {
     }
 
     @MainActor
-    func testVoicePauseResumeAddsConversationTurn() throws {
+    func testVoiceListeningProducesCommittedTurnThenPauses() throws {
         let app = launchApp(mode: "voice")
 
         XCTAssertTrue(waitUntilSelected(tabButton(named: "语音", in: app)))
@@ -322,19 +322,43 @@ final class TranslationPrototypeUITests: XCTestCase {
         let listeningStatus = element("conversation-listening-status", in: app)
         XCTAssertTrue(microphone.waitForExistence(timeout: 3))
         XCTAssertTrue(listeningStatus.waitForExistence(timeout: 3))
-        XCTAssertEqual(microphone.label, "暂停聆听")
-
-        microphone.tap()
-        XCTAssertTrue(wait(for: NSPredicate(format: "label == %@", "已暂停 · 轻点继续"), on: listeningStatus))
+        // 生产版从空白待机开始，不再自动聆听。
+        XCTAssertTrue(element("conversation-empty-hint", in: app).waitForExistence(timeout: 3))
+        XCTAssertTrue(wait(for: NSPredicate(format: "label == %@", "轻点开始对话"), on: listeningStatus))
         XCTAssertEqual(microphone.label, "开始聆听")
 
         microphone.tap()
-        // XCUITest waits for the prototype's 0.85 second processing task to become
-        // idle, so the observable stable state is the resumed listening state.
-        XCTAssertTrue(wait(for: NSPredicate(format: "label == %@", "正在聆听 · English"), on: listeningStatus, timeout: 4))
+        // 脚本化语音（--prototype-canned-speech）：volatile → final，
+        // 定稿后按固定译文表提交为对话气泡，随后自动续听。
+        let committedOriginal = firstElement(containingLabel: "Good morning", in: app)
+        XCTAssertTrue(committedOriginal.waitForExistence(timeout: 6))
+        let committedTranslation = firstElement(containingLabel: "早上好", in: app)
+        XCTAssertTrue(committedTranslation.waitForExistence(timeout: 3))
+        // 自动检测模式：状态显示语言对双语。
+        XCTAssertTrue(wait(for: NSPredicate(format: "label == %@", "正在聆听 · English / 中文"), on: listeningStatus, timeout: 6))
 
-        let addedTurn = firstElement(containingLabel: "Could you recommend a good local restaurant?", in: app)
-        XCTAssertTrue(addedTurn.waitForExistence(timeout: 3))
+        microphone.tap()
+        XCTAssertTrue(wait(for: NSPredicate(format: "label == %@", "已暂停 · 轻点继续"), on: listeningStatus, timeout: 6))
+        XCTAssertEqual(microphone.label, "开始聆听")
+    }
+
+    @MainActor
+    func testSettingsVoicePlaybackModeSelection() throws {
+        let app = launchApp(mode: "text", sheet: "settings")
+
+        let speakAfter = element("settings.voicePlayback.speakAfterTranslation", in: app)
+        let textOnly = element("settings.voicePlayback.textOnly", in: app)
+        let headphonesOnly = element("settings.voicePlayback.speakOnlyWithHeadphones", in: app)
+        XCTAssertTrue(speakAfter.waitForExistence(timeout: 3))
+        XCTAssertTrue(textOnly.waitForExistence(timeout: 2))
+        XCTAssertTrue(headphonesOnly.waitForExistence(timeout: 2))
+
+        // 默认选中「翻译完自动朗读」。
+        XCTAssertEqual(speakAfter.value as? String, "已选择")
+
+        textOnly.tap()
+        XCTAssertTrue(wait(for: NSPredicate(format: "value == %@", "已选择"), on: textOnly))
+        XCTAssertEqual(speakAfter.value as? String, "")
     }
 
     @MainActor
@@ -392,7 +416,8 @@ final class TranslationPrototypeUITests: XCTestCase {
         captureScreenshot(named: "native-tab-voice", of: app)
 
         microphone.tap()
-        XCTAssertTrue(wait(for: NSPredicate(format: "label == %@", "已暂停 · 轻点继续"), on: listeningStatus))
+        // 开始聆听后切走 tab：语音页会停止收音并记住暂停态。
+        XCTAssertTrue(wait(for: NSPredicate(format: "label BEGINSWITH %@", "正在"), on: listeningStatus, timeout: 6))
 
         cameraMode.tap()
         let shutter = element("camera.shutterButton", in: app)
@@ -407,7 +432,7 @@ final class TranslationPrototypeUITests: XCTestCase {
         XCTAssertTrue(waitUntilSelected(voiceMode))
         let restoredListeningStatus = element("conversation-listening-status", in: app)
         let restoredMicrophone = element("conversation-microphone-button", in: app)
-        XCTAssertTrue(wait(for: NSPredicate(format: "label == %@", "已暂停 · 轻点继续"), on: restoredListeningStatus))
+        XCTAssertTrue(wait(for: NSPredicate(format: "label == %@", "已暂停 · 轻点继续"), on: restoredListeningStatus, timeout: 6))
         XCTAssertEqual(restoredMicrophone.label, "开始聆听")
 
         textMode.tap()
@@ -430,8 +455,10 @@ final class TranslationPrototypeUITests: XCTestCase {
             "-AppleLanguages", "(zh-Hans)",
             "-AppleLocale", "zh_Hans_CN",
             "--prototype-mode", mode,
-            // 固定演示译文并复位持久化偏好，UI 测试不碰真实网络、不受上次运行影响。
+            // 固定演示译文/脚本化语音并复位持久化偏好，
+            // UI 测试不碰真实网络、麦克风与 TTS，不受上次运行影响。
             "--prototype-canned-translation",
+            "--prototype-canned-speech",
             "--prototype-reset-settings"
         ]
         if let sheet {

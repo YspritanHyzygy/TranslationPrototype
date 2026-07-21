@@ -24,6 +24,7 @@ final class AppSettingsTests: XCTestCase {
 
         XCTAssertEqual(settings.translationEngine, .google)
         XCTAssertFalse(settings.autoSpeaksTranslation)
+        XCTAssertEqual(settings.voicePlaybackMode, .speakAfterTranslation)
         XCTAssertNil(settings.lastSourceLanguageCode)
         XCTAssertNil(settings.lastTargetLanguageCode)
         XCTAssertNil(settings.storedSourceLanguage)
@@ -33,6 +34,7 @@ final class AppSettingsTests: XCTestCase {
     func testRoundTripPersistence() {
         let settings = AppSettings(defaults: defaults)
         settings.autoSpeaksTranslation = true
+        settings.voicePlaybackMode = .speakOnlyWithHeadphones
         settings.lastSourceLanguageCode = "en"
         settings.lastTargetLanguageCode = "zh-Hans"
 
@@ -40,8 +42,17 @@ final class AppSettingsTests: XCTestCase {
 
         XCTAssertEqual(reloaded.translationEngine, .google)
         XCTAssertTrue(reloaded.autoSpeaksTranslation)
+        XCTAssertEqual(reloaded.voicePlaybackMode, .speakOnlyWithHeadphones)
         XCTAssertEqual(reloaded.storedSourceLanguage, .english)
         XCTAssertEqual(reloaded.storedTargetLanguage, .chinese)
+    }
+
+    func testUnknownVoicePlaybackModeFallsBackToDefault() {
+        defaults.set("shout", forKey: "settings.voicePlaybackMode")
+
+        let settings = AppSettings(defaults: defaults)
+
+        XCTAssertEqual(settings.voicePlaybackMode, .speakAfterTranslation)
     }
 
     func testUnknownEngineRawValueFallsBackToGoogle() {

@@ -14,6 +14,11 @@ struct SettingsView: View {
                         .padding(.horizontal, 4)
                     engineCard
 
+                    SectionLabel(text: "语音对话")
+                        .padding(.horizontal, 4)
+                        .padding(.top, 14)
+                    voicePlaybackCard
+
                     SectionLabel(text: "通用偏好")
                         .padding(.horizontal, 4)
                         .padding(.top, 14)
@@ -72,6 +77,35 @@ struct SettingsView: View {
         .softShadow(radius: 7, y: 2, opacity: 0.045)
     }
 
+    private var voicePlaybackCard: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(VoicePlaybackMode.allCases.enumerated()), id: \.element.id) { index, mode in
+                Button {
+                    select(mode)
+                } label: {
+                    SelectableRow(
+                        title: mode.displayName,
+                        subtitle: mode.subtitle,
+                        isSelected: settings.voicePlaybackMode == mode
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(mode.displayName)，\(mode.subtitle)")
+                .accessibilityValue(settings.voicePlaybackMode == mode ? "已选择" : "")
+                .accessibilityIdentifier("settings.voicePlayback.\(mode.rawValue)")
+
+                if index < VoicePlaybackMode.allCases.count - 1 {
+                    Rectangle()
+                        .fill(AppTheme.divider)
+                        .frame(height: 1)
+                        .padding(.leading, 16)
+                }
+            }
+        }
+        .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .softShadow(radius: 7, y: 2, opacity: 0.045)
+    }
+
     private var preferenceCard: some View {
         VStack(spacing: 0) {
             ToggleRow(
@@ -97,6 +131,12 @@ struct SettingsView: View {
         guard engine.isAvailable, settings.translationEngine != engine else { return }
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         settings.translationEngine = engine
+    }
+
+    private func select(_ mode: VoicePlaybackMode) {
+        guard settings.voicePlaybackMode != mode else { return }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        settings.voicePlaybackMode = mode
     }
 
     private func accessibilityValue(for engine: TranslationEngine) -> String {
@@ -130,6 +170,36 @@ private struct EngineRow: View {
                     .padding(.vertical, 4)
                     .background(Color(hex: 0xEAE5DB), in: Capsule())
             } else if isSelected {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(AppTheme.terracotta)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .contentShape(Rectangle())
+    }
+}
+
+private struct SelectableRow: View {
+    let title: String
+    let subtitle: String
+    let isSelected: Bool
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(AppTheme.ink)
+                Text(subtitle)
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(AppTheme.faint)
+            }
+
+            Spacer()
+
+            if isSelected {
                 Image(systemName: "checkmark")
                     .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(AppTheme.terracotta)

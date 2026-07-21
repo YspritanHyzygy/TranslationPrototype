@@ -8,14 +8,15 @@
 - App 名称：译境
 - Bundle ID：`com.codex.translationprototype`
 - 最低系统：iOS 17
-- 技术：SwiftUI、原生 TabView、Observation、AVFoundation、PhotosUI；iOS 26+ 的系统标签栏自动采用 Liquid Glass。
+- 技术：SwiftUI、原生 TabView、Observation、AVFoundation、PhotosUI、Speech（SpeechAnalyzer/SFSpeechRecognizer）、Translation；iOS 26+ 的系统标签栏自动采用 Liquid Glass。
+- 权限：语音对话需要麦克风权限；iOS 17–25 回退路径额外需要语音识别权限（两个用途描述均已写入工程 INFOPLIST_KEY_*）。
 
 ## 已实现
 
 - 文字翻译：点击原文后，真实原文卡直接以一根 `.spring(duration: 0.45, bounce: 0.12)` 弹簧从静息高度展开到整个视口，软件键盘在下一个 runloop 请求焦点、与展开并行升起；tab bar 隐藏或键盘安全区变化时弹簧带速度重定向，不等待布局稳定，也没有快照覆盖层或结束时的交叉淡化交接。文字、听写和语言调整先保存为草稿；只有点击右上角陶土色圆形对勾“完成并翻译”后才提交并发起真实翻译。结果页继续支持交换语言、朗读、复制、收藏、分享与其他译法。
 - 真实翻译：文字页接入谷歌翻译非官方免费接口（`translate.googleapis.com`，`client=gtx`，无需 API Key）。提交后显示加载态，失败展示中文错误与重试按钮；新提交会取消在途请求。相同引擎、语言对与原文的成功结果在进程内 LRU 缓存（200 条），重复翻译同步复用、不再请求网络；失败不缓存，重试永远走真实请求。源语言支持“自动检测”（`sl=auto`），语言对栏展示检测结果，检测出语言后才可交换；单句译文附带谷歌返回的备选译法（多句时不提供），无备选时隐藏“其他译法”入口。
-- 设置：文字页右上角入口打开设置页。翻译模型可切换——谷歌翻译（免费）当前可用，自研模型与 LLM 翻译（自带 API Key）以“即将推出”禁用占位展示；通用偏好含“翻译后自动朗读译文”。翻译引擎、偏好与上次使用的语言对经 UserDefaults 持久化，首次启动保留演示内容，此后按记忆的语言对空白开始。
-- 对话翻译：双语气泡、讲话方切换、监听暂停/恢复、模拟新增转写与自动滚动。
+- 设置：文字页右上角入口打开设置页。翻译模型可切换——谷歌翻译（免费）当前可用，自研模型与 LLM 翻译（自带 API Key）以“即将推出”禁用占位展示；新增「语音对话」分区可选译文朗读行为（仅显示文字 / 翻译完自动朗读 / 仅戴耳机时朗读——耳机含有线、蓝牙与 USB，路由实时检测）；通用偏好含“翻译后自动朗读译文”（仅作用于文字页）。翻译引擎、朗读模式、偏好与上次使用的语言对经 UserDefaults 持久化，首次启动保留演示内容，此后按记忆的语言对空白开始。
+- 对话翻译（真实语音管线，连续识别）：点麦克风开始聆听，边说边在活动气泡里显示 volatile 转写与低透明度的实时粗译（350ms 节流的 re-translation，masked 源文本 + generation 号丢弃过期回包防闪烁）；volatile 稳定 ≥0.9s 且 RMS 静音 ≥0.55s 自动断句（或轻点手动结束，55s 硬上限）。**识别永不等翻译**：断句只是识别流上的切分点（`finalize(through: nil)`），句子定稿立即上屏（粗译预览 + 翻译中态），权威翻译按气泡异步填充、失败在气泡内重试，期间识别对下一句持续进行、句界零丢词（轨道状态按消费基线切分）；自动朗读排队在无人说话的间隙播放，播放时挂起识别输入防回采。**双语自动检测（默认）**：中间麦克风为语言对内自动识别——每个语言一条识别轨并行喂同一路音频，按 NLLanguageRecognizer 语言概率 + 识别置信度 + 文本量打分选胜者（带滞回防逐字闪烁），检测语言决定气泡侧别与翻译方向，中英可无缝混说；单轨失败不打断整段（其余轨继续）。点语言圆钮手动锁定一侧语言，再点一次回到自动；状态区显示当前模式（「正在聆听 · English / 中文」或单语言）。识别：iOS 26+ 且运行时可用（`SpeechTranscriber.isAvailable` 且 supportedLocales 非空）走 SpeechAnalyzer 挂多个 SpeechTranscriber 模块（纯本地、只需麦克风权限，多模块失败降级单轨），否则回退 SFSpeechRecognizer 多识别器并行（iOS 17–25 与模拟器；双权限）。**实时性关键**：识别链是会话级持久的——prepare 阶段就以 `.processLifetime` 模型驻留 + `prepareToAnalyze` 预热建好 analyzer，句间用 `finalize(through: nil)` 切分而非销毁重建（重建 = 每句话付一次秒级模型加载），TTS 播放与句间间隙靠挂起音频源丢弃 buffer 维持半双工（音频会话不做逐句 setActive 循环）；`.fastResults` 加速首个 volatile；断句阈值 volatile 稳定 0.9s + 静音 0.55s；胜者判定在开口 0.7s 内免滞回自由改选。翻译：苹果 Translation 框架优先——iOS 26+ 直接构造 `Translation.TranslationSession(installedSource:target:)`（26.4+ 为 partial 另建 `.lowLatency` 策略会话），iOS 18–25 经 AppShell 根部常驻宿主视图借 session；模拟器/iOS 17/语言包未装/框架报错时自动回退谷歌接口并按语言对记忆决策（os.Logger 记录原因）。来电中断、退后台、切 tab 都会停止收音，对话内容跨 tab 保留（controller 由 AppShell 持有）。气泡带朗读按钮；页面头部右上角有朗读模式直达菜单（与设置页同步）；语言对里的「自动检测」在语音页按对端语言消解为具体语言。final 译文进程内缓存（仅 final，partial 不进 LRU）；final 翻译失败时气泡内可重试。波形由实测麦克风电平（vDSP RMS）驱动。
 - 相机翻译：照片选择、识别加载态、菜单翻译覆盖卡、闪光灯与曝光状态。
 - 语言选择：源/目标语言切换、名称/别名/代码搜索、选择状态与空结果状态。
 - 历史与收藏：共享翻译记录、收藏过滤、即时星标切换、点选记录回填文字页。
@@ -24,7 +25,9 @@
 - 键入转场只有一个状态源：草稿是否存在。原文编辑器全程保持同一身份，展开与收回都是对真实卡片的布局动画（渲染树逐帧插值各视图 frame，卡面 Shape 每帧重算路径保持 22pt 连续圆角不变形），没有几何测量、跨事务验证或阶段编排；转场全程可交互、可打断，展开途中点对勾会带着当前速度平滑反向。结果区通过约 0.16 秒透明度 transition 在纸面下淡出/淡入，位置跟随布局弹簧；对勾延迟约 40ms 后从 0.84 倍轻弹至原尺寸。
 - 开启“减弱动态效果”时，布局直接切换到终态（无尺寸、位移、缩放动画），结果区与头部按钮仅保留约 0.12 秒透明度淡化；键盘与 tab bar 继续使用系统行为。
 
-> 这是可交互的产品原型。文字翻译已接入谷歌翻译非官方免费接口（需要能够访问谷歌服务的网络环境）；语音转写与菜单 OCR 仍使用本地演示数据。自研模型与基于 LLM 的翻译引擎为后续计划，暂以占位形式出现在设置页。
+> 这是可交互的产品原型。文字翻译已接入谷歌翻译非官方免费接口（需要能够访问谷歌服务的网络环境）；语音对话已接入真实语音识别与翻译管线（见上）；菜单 OCR 仍使用本地演示数据。自研模型与基于 LLM 的翻译引擎为后续计划，暂以占位形式出现在设置页——未来 Gemini 式流式语音翻译引擎的接缝已留在 `Voice/AppleTranslationService.swift` 底部（`StreamingSpeechTranslating` 协议桩，挂在语音会话层而非 text→text 层）。
+>
+> **模拟器限制（苹果官方约束，已实测核实）**：SpeechTranscriber 与 Translation 框架在 iOS 模拟器上都不可用（模拟器无 ANE、无翻译模型）。模拟器上语音页自动落到 SFSpeechRecognizer + 谷歌翻译回退链路，且实测（iOS 27 模拟器）：**en-US 因系统强制本地识别器而无法初始化（kLSRErrorDomain 300，端上/服务器模式都挂），zh-CN 走服务器识别完全可用**——所以模拟器上说中文可以真实走通「识别→翻译→朗读」，说英文会由多轨自动检测静默跳过失败轨（仅英文单轨时给出「模拟器暂不支持这种语言的识别」文案）。诊断可随时重跑 `TranslationPrototypeTests/SpeechAvailabilityProbeTests`（报告落盘 /private/tmp/speech-availability-probe.txt）。SpeechAnalyzer 路径、系统离线翻译、语言模型下载、`.lowLatency` 策略、双轨真机表现与耳机检测只能在真机验证。UI 测试通过 `--prototype-canned-speech` 注入脚本化识别与静音 TTS，全程不碰真实音频。
 
 ## 在 Xcode 中运行
 
@@ -56,7 +59,7 @@ xcodebuild \
 
 ## 自动化验收
 
-工程包含 `TranslationPrototypeUITests` UI 测试 Target，验收目标覆盖文字翻译与收藏、语言搜索与选择、语音暂停与新增对话、相机识别结果、原生 TabView 的跨 tab 切换/选中态同步/状态保留、“键入草稿 → 完成并翻译 → 恢复结果页”，以及 DEBUG “减弱动态效果”终态回归，共八条主流程。UI 测试统一携带 `--prototype-canned-translation` 与 `--prototype-reset-settings` 启动参数：前者注入固定演示译文（不访问真实网络），后者复位持久化偏好，保证断言稳定。第八条动画可见性回归不比较脆弱的毫秒级截图，而是由实际 `TextEntryPaperShape.path(in:)` 绘制路径的 DEBUG 探针验证展开和收回均经过起点、至少一个中间值与终点；其余流程只断言稳定终态。可用任意已安装的 iPhone 模拟器运行；例如：
+工程包含 `TranslationPrototypeUITests` UI 测试 Target，验收目标覆盖文字翻译与收藏、语言搜索与选择、语音「待机 → 聆听 → 定稿气泡 → 暂停」全流程、语音朗读模式设置选择、相机识别结果、原生 TabView 的跨 tab 切换/选中态同步/状态保留、“键入草稿 → 完成并翻译 → 恢复结果页”，以及 DEBUG “减弱动态效果”终态回归，共九条主流程。UI 测试统一携带 `--prototype-canned-translation`、`--prototype-canned-speech` 与 `--prototype-reset-settings` 启动参数：前两者注入固定演示译文与脚本化语音识别（不访问真实网络、不碰麦克风与 TTS），后者复位持久化偏好，保证断言稳定。单元测试覆盖对话控制器状态机（节流、generation 过期丢弃、端点计时、TTS 门控矩阵、失败重试、缓存命中等）、翻译路由回退链、朗读模式持久化与 locale 映射。第八条动画可见性回归不比较脆弱的毫秒级截图，而是由实际 `TextEntryPaperShape.path(in:)` 绘制路径的 DEBUG 探针验证展开和收回均经过起点、至少一个中间值与终点；其余流程只断言稳定终态。可用任意已安装的 iPhone 模拟器运行；例如：
 
 ```bash
 /Applications/Xcode-beta.app/Contents/Developer/usr/bin/xcodebuild test \

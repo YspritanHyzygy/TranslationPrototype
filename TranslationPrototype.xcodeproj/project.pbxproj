@@ -23,10 +23,22 @@
 		01A000000000000000000113 /* GoogleTranslateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000014 /* GoogleTranslateService.swift */; };
 		01A000000000000000000114 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000015 /* AppSettings.swift */; };
 		01A000000000000000000115 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000016 /* SettingsView.swift */; };
+		01A000000000000000000301 /* VoiceTranscription.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000201 /* VoiceTranscription.swift */; };
+		01A000000000000000000302 /* MicrophoneAudioSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000202 /* MicrophoneAudioSource.swift */; };
+		01A000000000000000000303 /* SFSpeechTranscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000203 /* SFSpeechTranscriptionService.swift */; };
+		01A000000000000000000304 /* SpeechAnalyzerTranscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000204 /* SpeechAnalyzerTranscriptionService.swift */; };
+		01A000000000000000000305 /* CannedSpeechTranscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000205 /* CannedSpeechTranscriptionService.swift */; };
+		01A000000000000000000306 /* AppleTranslationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000206 /* AppleTranslationService.swift */; };
+		01A000000000000000000307 /* SpeechSynthesizing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000207 /* SpeechSynthesizing.swift */; };
+		01A000000000000000000308 /* VoiceConversationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A000000000000000000208 /* VoiceConversationController.swift */; };
 		01B000000000000000000101 /* TranslationPrototypeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01B000000000000000000001 /* TranslationPrototypeUITests.swift */; };
 		01C000000000000000000101 /* TranslationSessionDraftTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01C000000000000000000001 /* TranslationSessionDraftTests.swift */; };
 		01C000000000000000000102 /* GoogleTranslateServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01C000000000000000000002 /* GoogleTranslateServiceTests.swift */; };
 		01C000000000000000000103 /* AppSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01C000000000000000000003 /* AppSettingsTests.swift */; };
+		01C000000000000000000104 /* VoiceConversationControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01C000000000000000000004 /* VoiceConversationControllerTests.swift */; };
+		01C000000000000000000105 /* VoiceTranslationRouterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01C000000000000000000005 /* VoiceTranslationRouterTests.swift */; };
+		01C000000000000000000106 /* LanguageSpeechLocaleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01C000000000000000000006 /* LanguageSpeechLocaleTests.swift */; };
+		01C000000000000000000107 /* SpeechAvailabilityProbeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01C000000000000000000007 /* SpeechAvailabilityProbeTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -64,11 +76,23 @@
 		01A000000000000000000014 /* GoogleTranslateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleTranslateService.swift; sourceTree = "<group>"; };
 		01A000000000000000000015 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		01A000000000000000000016 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		01A000000000000000000201 /* VoiceTranscription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceTranscription.swift; sourceTree = "<group>"; };
+		01A000000000000000000202 /* MicrophoneAudioSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicrophoneAudioSource.swift; sourceTree = "<group>"; };
+		01A000000000000000000203 /* SFSpeechTranscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SFSpeechTranscriptionService.swift; sourceTree = "<group>"; };
+		01A000000000000000000204 /* SpeechAnalyzerTranscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechAnalyzerTranscriptionService.swift; sourceTree = "<group>"; };
+		01A000000000000000000205 /* CannedSpeechTranscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CannedSpeechTranscriptionService.swift; sourceTree = "<group>"; };
+		01A000000000000000000206 /* AppleTranslationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleTranslationService.swift; sourceTree = "<group>"; };
+		01A000000000000000000207 /* SpeechSynthesizing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechSynthesizing.swift; sourceTree = "<group>"; };
+		01A000000000000000000208 /* VoiceConversationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceConversationController.swift; sourceTree = "<group>"; };
 		01B000000000000000000001 /* TranslationPrototypeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationPrototypeUITests.swift; sourceTree = "<group>"; };
 		01B000000000000000000011 /* TranslationPrototypeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TranslationPrototypeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		01C000000000000000000001 /* TranslationSessionDraftTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationSessionDraftTests.swift; sourceTree = "<group>"; };
 		01C000000000000000000002 /* GoogleTranslateServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleTranslateServiceTests.swift; sourceTree = "<group>"; };
 		01C000000000000000000003 /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
+		01C000000000000000000004 /* VoiceConversationControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceConversationControllerTests.swift; sourceTree = "<group>"; };
+		01C000000000000000000005 /* VoiceTranslationRouterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceTranslationRouterTests.swift; sourceTree = "<group>"; };
+		01C000000000000000000006 /* LanguageSpeechLocaleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageSpeechLocaleTests.swift; sourceTree = "<group>"; };
+		01C000000000000000000007 /* SpeechAvailabilityProbeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechAvailabilityProbeTests.swift; sourceTree = "<group>"; };
 		01C000000000000000000011 /* TranslationPrototypeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TranslationPrototypeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -121,6 +145,7 @@
 				01A000000000000000000017 /* AppIcon.icon */,
 				01A000000000000000000012 /* Assets.xcassets */,
 				01A000000000000000000033 /* Screens */,
+				01A000000000000000000034 /* Voice */,
 			);
 			path = TranslationPrototype;
 			sourceTree = "<group>";
@@ -148,6 +173,21 @@
 			path = Screens;
 			sourceTree = "<group>";
 		};
+		01A000000000000000000034 /* Voice */ = {
+			isa = PBXGroup;
+			children = (
+				01A000000000000000000201 /* VoiceTranscription.swift */,
+				01A000000000000000000208 /* VoiceConversationController.swift */,
+				01A000000000000000000202 /* MicrophoneAudioSource.swift */,
+				01A000000000000000000204 /* SpeechAnalyzerTranscriptionService.swift */,
+				01A000000000000000000203 /* SFSpeechTranscriptionService.swift */,
+				01A000000000000000000205 /* CannedSpeechTranscriptionService.swift */,
+				01A000000000000000000206 /* AppleTranslationService.swift */,
+				01A000000000000000000207 /* SpeechSynthesizing.swift */,
+			);
+			path = Voice;
+			sourceTree = "<group>";
+		};
 		01B000000000000000000031 /* TranslationPrototypeUITests */ = {
 			isa = PBXGroup;
 			children = (
@@ -162,6 +202,10 @@
 				01C000000000000000000001 /* TranslationSessionDraftTests.swift */,
 				01C000000000000000000002 /* GoogleTranslateServiceTests.swift */,
 				01C000000000000000000003 /* AppSettingsTests.swift */,
+				01C000000000000000000004 /* VoiceConversationControllerTests.swift */,
+				01C000000000000000000005 /* VoiceTranslationRouterTests.swift */,
+				01C000000000000000000006 /* LanguageSpeechLocaleTests.swift */,
+				01C000000000000000000007 /* SpeechAvailabilityProbeTests.swift */,
 			);
 			path = TranslationPrototypeTests;
 			sourceTree = "<group>";
@@ -311,6 +355,14 @@
 				01A000000000000000000113 /* GoogleTranslateService.swift in Sources */,
 				01A000000000000000000114 /* AppSettings.swift in Sources */,
 				01A000000000000000000115 /* SettingsView.swift in Sources */,
+				01A000000000000000000301 /* VoiceTranscription.swift in Sources */,
+				01A000000000000000000302 /* MicrophoneAudioSource.swift in Sources */,
+				01A000000000000000000303 /* SFSpeechTranscriptionService.swift in Sources */,
+				01A000000000000000000304 /* SpeechAnalyzerTranscriptionService.swift in Sources */,
+				01A000000000000000000305 /* CannedSpeechTranscriptionService.swift in Sources */,
+				01A000000000000000000306 /* AppleTranslationService.swift in Sources */,
+				01A000000000000000000307 /* SpeechSynthesizing.swift in Sources */,
+				01A000000000000000000308 /* VoiceConversationController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -329,6 +381,10 @@
 				01C000000000000000000101 /* TranslationSessionDraftTests.swift in Sources */,
 				01C000000000000000000102 /* GoogleTranslateServiceTests.swift in Sources */,
 				01C000000000000000000103 /* AppSettingsTests.swift in Sources */,
+				01C000000000000000000104 /* VoiceConversationControllerTests.swift in Sources */,
+				01C000000000000000000105 /* VoiceTranslationRouterTests.swift in Sources */,
+				01C000000000000000000106 /* LanguageSpeechLocaleTests.swift in Sources */,
+				01C000000000000000000107 /* SpeechAvailabilityProbeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -471,12 +527,15 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Z42T9RCB38;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "译境";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "对话翻译需要使用麦克风录制你的语音，用于实时语音识别与翻译。";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "需要语音识别权限把你的语音转成文字后翻译；iOS 26 及以上识别在你的设备上完成。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -504,12 +563,15 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Z42T9RCB38;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "译境";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "对话翻译需要使用麦克风录制你的语音，用于实时语音识别与翻译。";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "需要语音识别权限把你的语音转成文字后翻译；iOS 26 及以上识别在你的设备上完成。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -535,6 +597,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Z42T9RCB38;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -560,6 +623,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Z42T9RCB38;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -586,6 +650,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Z42T9RCB38;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -612,6 +677,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Z42T9RCB38;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;

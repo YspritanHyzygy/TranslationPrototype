@@ -99,20 +99,30 @@ struct ConversationTurn: Identifiable {
     let speaker: Speaker
     let language: String
     let original: String
-    let translation: String
+    /// 权威译文异步填充：识别不等翻译（live translate 的关键），
+    /// 定稿气泡先带粗译/占位上屏，翻译完成后原地替换。
+    var translation: String
+    /// 权威翻译进行中（气泡译文降透明度显示）。
+    var isTranslationPending = false
+    /// 权威翻译失败（气泡内提供重试）。
+    var translationFailed = false
+    /// 译文所属语言的 BCP-47 代码，供气泡朗读选择 TTS 音色；演示数据为 nil。
+    let translationLanguageCode: String?
 
     init(
         id: UUID = UUID(),
         speaker: Speaker,
         language: String,
         original: String,
-        translation: String
+        translation: String,
+        translationLanguageCode: String? = nil
     ) {
         self.id = id
         self.speaker = speaker
         self.language = language
         self.original = original
         self.translation = translation
+        self.translationLanguageCode = translationLanguageCode
     }
 
     static let samples: [ConversationTurn] = [
@@ -329,7 +339,7 @@ final class TranslationSession {
         }
 
         let cacheKey = TranslationMemoryCache.Key(
-            engine: settings.translationEngine,
+            engineID: settings.translationEngine.rawValue,
             sourceCode: sourceLanguage.code,
             targetCode: targetLanguage.code,
             text: text

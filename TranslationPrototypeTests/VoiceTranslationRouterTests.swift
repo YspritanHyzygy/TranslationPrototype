@@ -1,0 +1,112 @@
+import XCTest
+@testable import TranslationPrototype
+
+@MainActor
+private final class MockAppleTranslating: AppleTranslating {
+    var behavior: (String) throws -> String = { _ in
+        throw AppleTranslationUnavailableError(reason: "测试默认不可用")
+    }
+    private(set) var callCount = 0
+
+    func translate(
+        _ text: String,
+        source: Language,
+        target: Language,
+        volatilePreferred: Bool
+    ) async throws -> String {
+        callCount += 1
+        return try behavior(text)
+    }
+}
+
+private final class RecordingFallback: TranslationService, @unchecked Sendable {
+    private let lock = NSLock()
+    private var _requests: [TranslationRequest] = []
+
+    var requests: [TranslationRequest] {
+        lock.lock()
+        defer { lock.unlock() }
+        return _requests
+    }
+
+    func translate(_ request: TranslationRequest) async throws -> TranslationResult {
+        lock.lock()
+        _requests.append(request)
+        lock.unlock()
+        return TranslationResult(text: "回退:\(request.text)", detectedLanguage: nil, alternatives: [])
+    }
+}
+
+@MainActor
+final class VoiceTranslationRouterTests: XCTestCase {
+    private func request(_ text: String) -> TranslationRequest {
+        TranslationRequest(text: text, source: .english, target: .chinese)
+    }
+
+    func testAppleSuccessSkipsFallback() async throws {
+        let apple = MockAppleTranslating()
+        apple.behavior = { "苹果:\($0)" }
+        let fallback = RecordingFallback()
+        var decisions: [String] = []
+        let router = VoiceTranslationRouter(apple: apple, fallback: fallback) { decisions.append($0) }
+
+        let result = try await router.translate(request("hello"))
+
+        XCTAssertEqual(result.text, "苹果:hello")
+        XCTAssertTrue(fallback.requests.isEmpty)
+        XCTAssertEqual(decisions, ["apple"])
+    }
+
+    func testAppleUnavailableFallsBackToGoogle() async throws {
+        let apple = MockAppleTranslating()
+        let fallback = RecordingFallback()
+        var decisions: [String] = []
+        let router = VoiceTranslationRouter(apple: apple, fallback: fallback) { decisions.append($0) }
+
+        let result = try await router.translate(request("hello"))
+
+        XCTAssertEqual(result.text, "回退:hello")
+        XCTAssertEqual(fallback.requests.count, 1)
+        XCTAssertEqual(decisions.first?.hasPrefix("google:"), true)
+    }
+
+    func testPairFailureMemoSkipsAppleOnSubsequentCalls() async throws {
+        let apple = MockAppleTranslating()
+        let fallback = RecordingFallback()
+        let router = VoiceTranslationRouter(apple: apple, fallback: fallback)
+
+        _ = try await router.translate(request("one"))
+        _ = try await router.translateVolatile(request("two"))
+        _ = try await router.translate(request("three"))
+
+        XCTAssertEqual(apple.callCount, 1, "同一语言对失败后本会话不再尝试苹果路径")
+        XCTAssertEqual(fallback.requests.count, 3)
+    }
+
+    func testResetPairMemosRetriesApple() async throws {
+        let apple = MockAppleTranslating()
+        let fallback = RecordingFallback()
+        let router = VoiceTranslationRouter(apple: apple, fallback: fallback)
+
+        _ = try await router.translate(request("one"))
+        XCTAssertEqual(apple.callCount, 1)
+
+        apple.behavior = { "苹果:\($0)" }
+        router.resetPairMemos()
+        let result = try await router.translate(request("two"))
+
+        XCTAssertEqual(apple.callCount, 2)
+        XCTAssertEqual(result.text, "苹果:two")
+    }
+
+    func testNilAppleGoesStraightToFallback() async throws {
+        let fallback = RecordingFallback()
+        var decisions: [String] = []
+        let router = VoiceTranslationRouter(apple: nil, fallback: fallback) { decisions.append($0) }
+
+        let result = try await router.translate(request("hello"))
+
+        XCTAssertEqual(result.text, "回退:hello")
+        XCTAssertEqual(decisions, ["google:no-apple"])
+    }
+}

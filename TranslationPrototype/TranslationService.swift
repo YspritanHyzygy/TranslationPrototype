@@ -76,7 +76,7 @@ protocol TranslationService: Sendable {
 @MainActor
 final class TranslationMemoryCache {
     struct Key: Hashable {
-        let engine: TranslationEngine
+        let engineID: String
         let sourceCode: String
         let targetCode: String
         let text: String

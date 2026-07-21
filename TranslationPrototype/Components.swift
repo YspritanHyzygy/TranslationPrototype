@@ -117,24 +117,57 @@ struct SectionLabel: View {
 }
 
 struct WaveBars: View {
+    /// nil = 原型固定关键帧循环；非 nil = 实测麦克风电平驱动（线性 RMS）。
+    var level: Float? = nil
+
     @State private var animate = false
+    @State private var levelSlots: [CGFloat] = Array(repeating: 0.3, count: 5)
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private static let baseHeights: [CGFloat] = [18, 30, 24, 34, 20]
 
     var body: some View {
         HStack(spacing: 5) {
             ForEach(0..<5, id: \.self) { index in
                 RoundedRectangle(cornerRadius: 2)
                     .fill(.white)
-                    .frame(width: 4, height: CGFloat([18, 30, 24, 34, 20][index]))
-                    .scaleEffect(y: animate ? CGFloat([0.45, 1, 0.62, 0.92, 0.52][index]) : 0.32, anchor: .center)
-                    .animation(
-                        .easeInOut(duration: 0.86)
-                            .repeatForever(autoreverses: true)
-                            .delay(Double(index) * 0.12),
-                        value: animate
-                    )
+                    .frame(width: 4, height: Self.baseHeights[index])
+                    .scaleEffect(y: scale(for: index), anchor: .center)
+                    .animation(cannedAnimation(for: index), value: animate)
             }
         }
-        .onAppear { animate = true }
+        .onAppear {
+            if level == nil && !reduceMotion { animate = true }
+        }
+        .onChange(of: level) { _, newValue in
+            guard let newValue else { return }
+            let normalized = min(1, CGFloat(newValue) * 9)
+            var slots = levelSlots
+            slots.removeFirst()
+            slots.append(0.3 + 0.7 * normalized)
+            if reduceMotion {
+                levelSlots = slots
+            } else {
+                withAnimation(.easeOut(duration: 0.12)) { levelSlots = slots }
+            }
+        }
+    }
+
+    private func scale(for index: Int) -> CGFloat {
+        if level != nil {
+            return max(0.25, levelSlots[index])
+        }
+        if reduceMotion {
+            return 0.6
+        }
+        return animate ? CGFloat([0.45, 1, 0.62, 0.92, 0.52][index]) : 0.32
+    }
+
+    private func cannedAnimation(for index: Int) -> Animation? {
+        guard level == nil, !reduceMotion else { return nil }
+        return .easeInOut(duration: 0.86)
+            .repeatForever(autoreverses: true)
+            .delay(Double(index) * 0.12)
     }
 }
 
