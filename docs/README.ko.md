@@ -1,0 +1,130 @@
+<p align="center">
+  <img src="icon.png" width="128" alt="译境 앱 아이콘" />
+</p>
+
+<h1 align="center">译境 (Verto)</h1>
+
+<p align="center">
+  <img alt="AI Coded 100%" src="https://img.shields.io/badge/AI%20Coded-100%25-brightgreen?style=flat-square&labelColor=444" />
+  <img alt="iOS 17+" src="https://img.shields.io/badge/iOS-17%2B-0A84FF?style=flat-square&labelColor=444&logo=apple&logoColor=white" />
+  <img alt="SwiftUI" src="https://img.shields.io/badge/Swift-SwiftUI-F05138?style=flat-square&labelColor=444&logo=swift&logoColor=white" />
+</p>
+
+<p align="center">
+  <a href="../README.md">简体中文</a> · <a href="README.en.md">English</a> · <a href="README.ja.md">日本語</a> · <b>한국어</b> · <a href="README.es.md">Español</a>
+</p>
+
+<p align="center">네이티브 SwiftUI로 만든 iOS 번역 앱. 텍스트·음성 대화·카메라 세 가지 입구를 갖추고,<br />실제 번역과 연속 음성 인식 파이프라인을 내장했으며, 자체 개발 번역 모델과 LLM 번역 엔진의 실험장이기도 하다.</p>
+
+---
+
+## 프로젝트
+
+- Xcode 프로젝트: `Verto.xcodeproj`
+- 앱 이름: 译境(중국어로 "번역의 경지"라는 뜻)
+- UI 언어: 중국어 간체
+- Bundle ID: `com.yspritan.verto`
+- 최소 OS: iOS 17
+- 기술: SwiftUI, 네이티브 TabView, Observation, AVFoundation, PhotosUI, Speech(SpeechAnalyzer/SFSpeechRecognizer), Translation. iOS 26+에서는 시스템 탭 바가 자동으로 Liquid Glass를 적용.
+- 권한: 음성 대화에는 마이크 권한이 필요하다. iOS 17–25 폴백 경로에서는 추가로 음성 인식 권한이 필요하다(두 용도 설명 모두 프로젝트의 INFOPLIST_KEY_*에 기재됨).
+
+## 기능
+
+### 텍스트 번역
+
+원문을 탭하면 실제 원문 카드가 `.spring(duration: 0.45, bounce: 0.12)` 스프링 하나로 정지 높이에서 전체 뷰포트까지 펼쳐진다. 소프트웨어 키보드는 다음 runloop에서 포커스를 요청해 펼침과 병행하여 올라온다. 탭 바가 숨겨지거나 키보드 세이프 에어리어가 변할 때 스프링은 속도를 유지한 채 목표를 재설정한다 — 레이아웃 안정을 기다리지 않고, 스냅숏 오버레이도, 종료 시의 크로스페이드 인계도 없다. 텍스트·받아쓰기·언어 변경은 먼저 초안으로 저장되며, 우상단의 테라코타색 원형 체크 "完成并翻译"(완료 후 번역)를 탭해야 커밋되어 실제 번역이 발사된다. 결과 화면은 언어 교환, 낭독, 복사, 즐겨찾기, 공유, 대안 번역을 계속 지원한다.
+
+**번역 엔진과 캐시**: 텍스트 탭은 Google 번역의 비공식 무료 엔드포인트(`translate.googleapis.com`, `client=gtx`, API 키 불필요)에 연결된다. 제출 후 로딩 상태를 표시하고, 실패 시 중국어 오류 메시지와 재시도 버튼을 보여준다. 새 제출은 진행 중인 요청을 취소한다. 동일한 엔진·언어 쌍·원문의 성공 결과는 프로세스 내 LRU(200개)에 캐시되어, 반복 번역은 네트워크 없이 동기적으로 재사용된다. 실패는 캐시되지 않으므로 재시도는 항상 실제 요청을 보낸다. 소스 언어는 "자동 감지"(`sl=auto`)를 지원한다: 언어 쌍 바에 감지 결과가 표시되고, 감지가 확정된 후에야 교환이 가능해진다. 단문 번역에는 Google이 반환하는 대안 번역이 붙는다(여러 문장일 때는 제공되지 않으며, 대안이 없으면 "대안 번역" 입구를 숨긴다).
+
+### 음성 대화 번역
+
+마이크를 탭해 듣기를 시작한다. 말하는 동안 활성 말풍선에 volatile 전사와 저투명도의 실시간 대략 번역이 표시된다(350ms 스로틀의 재번역, masked 소스 텍스트 + generation 번호로 만료된 응답을 버려 깜빡임 방지). volatile이 0.9초 이상 안정되고 RMS 무음이 0.55초 이상 지속되면 자동으로 문장을 확정한다(탭으로 수동 종료도 가능, 55초 하드 리밋).
+
+**인식은 번역을 절대 기다리지 않는다**: 문장 확정은 인식 스트림 위의 절단점일 뿐이다(`finalize(through: nil)`). 확정된 문장은 즉시 화면에 오르고(대략 번역 미리보기 + 번역 중 상태), 정식 번역은 말풍선별로 비동기로 채워지며 실패 시 말풍선 안에서 재시도할 수 있다. 그동안 인식은 다음 문장을 향해 계속되고 문장 경계에서 단어 손실은 없다(트랙 상태는 소비 기준선에서 분할). 자동 낭독은 아무도 말하지 않는 틈에 큐잉되어 재생되고, 재생 중에는 오디오 입력을 일시 중단해 재수음을 방지한다.
+
+**이중 언어 자동 감지(기본값)**: 가운데 마이크는 언어 쌍 내 자동 식별이다 — 언어마다 인식 트랙 하나가 같은 오디오를 병렬로 받고, NLLanguageRecognizer 언어 확률 + 인식 신뢰도 + 텍스트 양 점수로 승자를 고른다(글자 단위 깜빡임을 막는 히스테리시스 포함). 감지된 언어가 말풍선의 쪽과 번역 방향을 결정하므로 중국어와 영어를 매끄럽게 섞어 말할 수 있다. 한 트랙의 실패가 발화 전체를 끊지 않는다(나머지 트랙은 계속). 언어 버튼을 탭하면 한쪽 언어를 수동으로 잠그고, 다시 탭하면 자동으로 돌아간다. 상태 영역에 현재 모드가 표시된다(「正在聆听 · English / 中文」=듣는 중, 또는 단일 언어).
+
+**인식 스택**: iOS 26+이고 런타임에서 사용 가능하면(`SpeechTranscriber.isAvailable`이고 supportedLocales가 비어 있지 않으면) SpeechAnalyzer에 여러 SpeechTranscriber 모듈을 연결해 돌린다(완전 온디바이스, 마이크 권한만 필요, 모듈 실패 시 단일 트랙으로 강등). 그 외에는 여러 SFSpeechRecognizer의 병렬 실행으로 폴백한다(iOS 17–25와 시뮬레이터, 두 권한 필요).
+
+**실시간성의 핵심**: 인식 체인은 세션 수준으로 지속된다 — prepare 단계에서 `.processLifetime` 모델 상주 + `prepareToAnalyze` 워밍업으로 analyzer를 미리 구축하고, 문장 사이는 파괴·재구축이 아니라 `finalize(through: nil)`로 절단한다(재구축 = 문장마다 초 단위 모델 로드를 지불). TTS 재생과 문장 사이 틈에서는 일시 중단된 오디오 소스가 버퍼를 버리는 방식으로 반이중을 유지한다(오디오 세션을 문장마다 setActive로 순환시키지 않는다). `.fastResults`로 첫 volatile을 가속. 확정 임계값은 volatile 안정 0.9초 + 무음 0.55초. 승자 판정은 발화 시작 0.7초 이내라면 히스테리시스 없이 자유롭게 바뀔 수 있다.
+
+**번역 라우팅**: Apple의 Translation 프레임워크 우선 — iOS 26+에서는 `Translation.TranslationSession(installedSource:target:)`을 직접 생성하고(26.4+에서는 partial용으로 `.lowLatency` 전략 세션을 따로 구축), iOS 18–25에서는 AppShell 루트에 상주하는 호스트 뷰를 통해 session을 빌린다. 시뮬레이터 / iOS 17 / 언어 팩 미설치 / 프레임워크 오류 시 자동으로 Google 엔드포인트로 폴백하고 언어 쌍별로 결정을 기억한다(이유는 os.Logger에 기록).
+
+전화 수신, 백그라운드 전환, 탭 전환은 모두 수음을 멈추며, 대화 내용은 탭을 넘어 유지된다(controller는 AppShell이 보유). 말풍선에는 낭독 버튼이 있고, 페이지 헤더 우상단에는 낭독 모드 바로가기 메뉴가 있다(설정과 동기화). 언어 쌍의 "자동 감지"는 음성 탭에서 상대쪽 언어에 따라 구체적 언어로 해석된다. final 번역은 프로세스 내에 캐시된다(final만, partial은 LRU에 넣지 않는다). final 번역 실패는 말풍선 안에서 재시도할 수 있다. 파형은 실측 마이크 레벨(vDSP RMS)로 구동된다.
+
+### 카메라 번역
+
+사진 선택, 인식 로딩 상태, 메뉴 번역 오버레이 카드, 플래시와 노출 상태.
+
+### 언어·기록·즐겨찾기
+
+- 언어 선택: 소스/타깃 전환, 이름/별명/코드 검색, 선택 상태와 빈 결과 상태.
+- 기록과 즐겨찾기: 공유 번역 기록, 즐겨찾기 필터, 즉시 별표 토글, 기록을 탭하면 텍스트 탭에 다시 채워짐.
+
+### 설정과 외관
+
+텍스트 탭 우상단 입구로 설정 화면을 연다. 번역 모델은 전환 가능하다 — Google 번역(무료)은 현재 사용 가능하고, 자체 개발 모델과 LLM 번역(API 키 지참)은 "곧 출시" 비활성 플레이스홀더로 표시된다. "음성 대화" 섹션에서는 번역문 낭독 동작을 고를 수 있다(텍스트만 표시 / 번역 후 자동 낭독 / 헤드폰 착용 시에만 낭독 — 유선·블루투스·USB 포함, 라우트 실시간 감지). 일반 설정에는 "번역 후 자동 낭독"(텍스트 탭에만 적용)이 있다. 번역 엔진·낭독 모드·설정·마지막 언어 쌍은 UserDefaults로 지속되며, 첫 실행에는 데모 콘텐츠를 유지하고 이후에는 기억된 언어 쌍으로 빈 화면에서 시작한다.
+
+**다크 모드**: 시스템을 따르거나 설정에서 외관을 수동 지정. 적응형 팔레트가 모든 화면과 컴포넌트를 관통한다.
+
+### 내비게이션과 모션
+
+- 텍스트·음성·카메라는 네이티브 TabView의 세 최상위 영역이다. 평상시 탭 바는 계속 표시되고 각 탭의 상태를 유지하며, 텍스트 탭의 집중 입력 때만 시스템이 일시적으로 숨기고 초안 커밋 후 복귀한다. iOS 26+는 시스템이 Liquid Glass를 그리고, iOS 17–25는 해당 시스템 탭 바 외관을 쓴다. selection이 실제로 바뀔 때 시스템 햅틱 피드백을 발사한다.
+- 집중 입력 상태에서 `.keyboard` 툴바에 "완료"를 두지 않는다. 소프트웨어/하드웨어 키보드 모두 페이지 우상단에 고정된 제출 버튼을 사용해 하단 조작이 시스템 탭 바와 겹치지 않게 한다.
+- 입력 전환의 상태 원천은 하나뿐: 초안의 존재 여부. 원문 편집기는 전 과정 동일한 정체성을 유지하고, 펼침과 접힘 모두 실제 카드에 대한 레이아웃 애니메이션이다(렌더 트리가 각 뷰의 frame을 프레임마다 보간하고, 카드 면 Shape는 매 프레임 패스를 재계산해 22pt 연속 둥근 모서리가 변형되지 않는다). 지오메트리 측정, 트랜잭션 교차 검증, 단계 편성이 없다. 전환은 전 과정 조작 가능하고 중단 가능하며, 펼치는 도중 체크를 탭하면 현재 속도를 지닌 채 매끄럽게 역전된다. 결과 영역은 종이면 아래에서 약 0.16초 불투명도 transition으로 페이드아웃/인하고 위치는 레이아웃 스프링을 따른다. 체크는 약 40ms 지연 후 0.84배에서 원래 크기로 가볍게 팝한다.
+- "동작 줄이기"가 켜지면 레이아웃은 곧장 최종 상태로 전환된다(크기·이동·스케일 애니메이션 없음). 결과 영역과 헤더 버튼은 약 0.12초 불투명도 페이드만 유지하고, 키보드와 탭 바는 시스템 동작을 계속 쓴다.
+
+## 현황과 로드맵
+
+텍스트 번역은 Google 번역의 비공식 무료 엔드포인트에 연결되어 있다(Google 서비스에 접근 가능한 네트워크 환경 필요). 음성 대화는 실제 음성 인식·번역 파이프라인(위 참조). 메뉴 OCR은 현재 로컬 데모 데이터를 사용한다. 자체 개발 모델과 LLM 기반 번역 엔진은 향후 계획으로 설정 화면에 플레이스홀더로 표시 중이다 — 미래의 스트리밍 음성 번역 엔진을 위한 이음새는 `Verto/Voice/AppleTranslationService.swift` 하단에 이미 마련되어 있다(`StreamingSpeechTranslating` 프로토콜 스텁, text→text 층이 아닌 음성 세션 층에 연결).
+
+## Xcode에서 실행
+
+1. Xcode로 `Verto.xcodeproj`를 연다.
+2. `Verto` 스킴을 선택한다.
+3. iOS 17 이상의 아무 iPhone 시뮬레이터나 선택한다.
+4. Run을 누른다.
+
+터미널의 `xcode-select`가 Command Line Tools나 구버전 Xcode를 가리키면 `DEVELOPER_DIR`을 붙여 커맨드라인에서 빌드할 수 있다:
+
+```bash
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
+xcodebuild \
+  -project Verto.xcodeproj \
+  -scheme Verto \
+  -configuration Debug \
+  -sdk iphonesimulator \
+  -destination 'generic/platform=iOS Simulator' \
+  -derivedDataPath /private/tmp/VertoDerivedData \
+  CODE_SIGNING_ALLOWED=NO \
+  build
+```
+
+## 시뮬레이터 제한
+
+**Apple 공식 제약, 실측으로 검증됨**: SpeechTranscriber와 Translation 프레임워크 모두 iOS 시뮬레이터에서 동작하지 않는다(시뮬레이터에는 ANE도 번역 모델도 없다). 시뮬레이터의 음성 탭은 자동으로 SFSpeechRecognizer + Google 폴백 체인으로 떨어지며, iOS 27 시뮬레이터 실측 결과: **en-US는 시스템이 로컬 인식기를 강제해 초기화가 불가능하고(kLSRErrorDomain 300, 온디바이스/서버 모드 모두 실패), zh-CN은 서버 인식으로 완전히 동작한다** — 즉 시뮬레이터에서 중국어를 말하면 "인식→번역→낭독"을 실제로 한 바퀴 돌 수 있고, 영어는 멀티트랙 자동 감지가 실패 트랙을 조용히 건너뛴다(영어 단일 트랙일 때는 "模拟器暂不支持这种语言的识别"="시뮬레이터는 이 언어의 인식을 아직 지원하지 않습니다" 문구를 보여준다).
+
+진단은 `VertoTests/SpeechAvailabilityProbeTests`로 언제든 다시 돌릴 수 있다(리포트는 /private/tmp/speech-availability-probe.txt에 저장). SpeechAnalyzer 경로, 시스템 오프라인 번역, 언어 모델 다운로드, `.lowLatency` 전략, 실기기의 듀얼 트랙 동작, 헤드폰 감지는 실기기에서만 검증할 수 있다. UI 테스트는 `--uitest-canned-speech`로 스크립트화된 인식과 무음 TTS를 주입하며 실제 오디오는 전혀 건드리지 않는다.
+
+## 자동화 테스트
+
+프로젝트에는 `VertoUITests` UI 테스트 타깃이 포함되며, 수용 대상은 텍스트 번역과 즐겨찾기, 언어 검색과 선택, 음성 "대기 → 듣기 → 확정 말풍선 → 일시정지" 전체 플로우, 음성 낭독 모드 설정 선택, 카메라 인식 결과, 네이티브 TabView의 탭 간 전환/선택 상태 동기화/상태 유지, "초안 입력 → 완료 후 번역 → 결과 화면 복원", 그리고 DEBUG "동작 줄이기" 최종 상태 회귀 등 주요 플로우를 커버한다.
+
+UI 테스트는 일괄적으로 `--uitest-canned-translation`, `--uitest-canned-speech`, `--uitest-reset-settings` 실행 인자를 지닌다: 앞의 둘은 고정 데모 번역문과 스크립트화된 음성 인식을 주입하고(실제 네트워크·마이크·TTS에 접근하지 않음), 마지막 하나는 지속화된 설정을 초기화해 어서션의 안정을 보장한다.
+
+단위 테스트는 대화 컨트롤러 상태 기계(스로틀링, generation 만료 폐기, 엔드포인트 타이밍, TTS 게이팅 매트릭스, 실패 재시도, 캐시 적중 등), 번역 라우팅 폴백 체인, 낭독 모드 지속화, locale 매핑을 커버한다. 애니메이션 가시성 회귀는 깨지기 쉬운 밀리초급 스크린숏 비교가 아니라, 실제 `TextEntryPaperShape.path(in:)` 드로잉 패스에 대한 DEBUG 프로브로 펼침과 접힘이 시작점·최소 한 개의 중간값·끝점을 통과하는지 검증한다. 그 외 플로우는 안정된 최종 상태만 어서트한다.
+
+설치된 아무 iPhone 시뮬레이터로나 실행할 수 있다. 예:
+
+```bash
+xcodebuild test \
+  -project Verto.xcodeproj \
+  -scheme Verto \
+  -configuration Debug \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+  -derivedDataPath /private/tmp/VertoTestData \
+  CODE_SIGNING_ALLOWED=NO \
+  -only-testing:VertoUITests
+```
+
+시뮬레이터는 selection이 실제로 바뀌었는지는 검증할 수 있지만 물리적 진동은 검증할 수 없다. 햅틱 강도와 감촉은 실제 iPhone에서 최종 확인이 필요하다.

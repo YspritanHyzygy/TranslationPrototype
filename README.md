@@ -10,6 +10,10 @@
   <img alt="SwiftUI" src="https://img.shields.io/badge/Swift-SwiftUI-F05138?style=flat-square&labelColor=444&logo=swift&logoColor=white" />
 </p>
 
+<p align="center">
+  <b>简体中文</b> · <a href="docs/README.en.md">English</a> · <a href="docs/README.ja.md">日本語</a> · <a href="docs/README.ko.md">한국어</a> · <a href="docs/README.es.md">Español</a>
+</p>
+
 <p align="center">原生 SwiftUI 打造的 iOS 翻译 App：文字、语音对话、相机三个入口，<br />内置真实翻译与连续语音识别管线，同时作为自研翻译模型与 LLM 翻译引擎的试验田。</p>
 
 ---
