@@ -369,7 +369,7 @@ struct TextTranslateView: View {
                 .accessibilityIdentifier("translation-loading")
             case .failed(let error):
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(error.errorDescription ?? "翻译失败，请重试")
+                    Text(error.errorDescription ?? String(localized: "翻译失败，请重试"))
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(AppTheme.secondaryInk)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -394,12 +394,20 @@ struct TextTranslateView: View {
                 Button {
                     presentedSheet = .alternatives
                 } label: {
-                    Text(session.translatedText.isEmpty ? "译文会显示在这里" : session.translatedText)
-                        .font(.system(size: 25, weight: .regular, design: .serif))
-                        .lineSpacing(5)
-                        .foregroundStyle(session.translatedText.isEmpty ? AppTheme.faint : AppTheme.resultInk)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .multilineTextAlignment(.leading)
+                    // 占位与译文拆开：三元里混入 String 变量会把整个表达式推成
+                    // Text(String) 原样渲染，占位字面量就静默不本地化了。
+                    Group {
+                        if session.translatedText.isEmpty {
+                            Text("译文会显示在这里")
+                        } else {
+                            Text(verbatim: session.translatedText)
+                        }
+                    }
+                    .font(.system(size: 25, weight: .regular, design: .serif))
+                    .lineSpacing(5)
+                    .foregroundStyle(session.translatedText.isEmpty ? AppTheme.faint : AppTheme.resultInk)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .multilineTextAlignment(.leading)
                 }
                 .buttonStyle(.plain)
                 .disabled(!session.hasAlternatives)
@@ -411,25 +419,25 @@ struct TextTranslateView: View {
             HStack(spacing: 16) {
                 resultAction(
                     systemName: "speaker.wave.2",
-                    label: "朗读译文",
+                    label: String(localized: "朗读译文"),
                     identifier: "speak-result-button",
                     action: speakResult
                 )
                 resultAction(
                     systemName: "doc.on.doc",
-                    label: "复制译文",
+                    label: String(localized: "复制译文"),
                     identifier: "copy-result-button",
                     color: AppTheme.actionMuted,
                     action: copyResult
                 )
                 resultAction(
                     systemName: session.isCurrentFavorite ? "star.fill" : "star",
-                    label: session.isCurrentFavorite ? "取消收藏" : "收藏译文",
+                    label: session.isCurrentFavorite ? String(localized: "取消收藏") : String(localized: "收藏译文"),
                     identifier: "favorite-result-button",
                     color: session.isCurrentFavorite ? AppTheme.terracotta : AppTheme.actionMuted
                 ) {
                     session.toggleCurrentFavorite()
-                    showToast(session.isCurrentFavorite ? "已收藏" : "已取消收藏")
+                    showToast(session.isCurrentFavorite ? String(localized: "已收藏") : String(localized: "已取消收藏"))
                 }
 
                 Spacer()
@@ -877,7 +885,7 @@ struct TextTranslateView: View {
         beginEditingIfNeeded()
         isDictating = true
         UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-        showToast("正在听写…")
+        showToast(String(localized: "正在听写…"))
         Task {
             try? await Task.sleep(nanoseconds: 700_000_000)
             guard draft != nil else {
@@ -896,14 +904,14 @@ struct TextTranslateView: View {
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.92
         speechSynthesizer.stopSpeaking(at: .immediate)
         speechSynthesizer.speak(utterance)
-        showToast("正在朗读")
+        showToast(String(localized: "正在朗读"))
     }
 
     private func copyResult() {
         UIPasteboard.general.string = session.translatedText
         session.saveCurrent()
         UINotificationFeedbackGenerator().notificationOccurred(.success)
-        showToast("译文已复制")
+        showToast(String(localized: "译文已复制"))
     }
 
     private func showToast(_ text: String) {
@@ -1325,7 +1333,7 @@ private struct AlternativeTranslationsView: View {
                     dismiss()
                 } label: {
                     HStack(alignment: .top, spacing: 12) {
-                        Text("\(index + 1)")
+                        Text(verbatim: "\(index + 1)")
                             .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(.white)
                             .frame(width: 24, height: 24)

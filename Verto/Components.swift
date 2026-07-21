@@ -109,7 +109,8 @@ struct SectionLabel: View {
     var color: Color = AppTheme.faint
 
     var body: some View {
-        Text(text)
+        // text 既有字面量文案（走目录查表）也有语言自称等数据（查不到即原样回显）。
+        Text(LocalizedStringKey(text))
             .font(.system(size: 12, weight: .bold))
             .tracking(1)
             .foregroundStyle(color)

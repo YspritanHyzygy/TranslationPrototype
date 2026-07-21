@@ -195,7 +195,7 @@ struct VoiceConversationView: View {
                 languageCircle(
                     controller.voiceSource.code == "en" ? "EN" : String(controller.voiceSource.nativeName.prefix(1)),
                     speaker: .source,
-                    label: "使用\(controller.voiceSource.nativeName)讲话"
+                    label: String(localized: "使用\(controller.voiceSource.nativeName)讲话")
                 )
 
                 Button(action: { controller.toggleListening() }) {
@@ -234,7 +234,7 @@ struct VoiceConversationView: View {
                 languageCircle(
                     controller.voiceTarget.code == "zh-Hans" ? "中" : String(controller.voiceTarget.nativeName.prefix(2)),
                     speaker: .target,
-                    label: "使用\(controller.voiceTarget.nativeName)讲话"
+                    label: String(localized: "使用\(controller.voiceTarget.nativeName)讲话")
                 )
             }
             .liquidGlassContainer(spacing: 8)

@@ -21,8 +21,8 @@
 ## Project
 
 - Xcode project: `Verto.xcodeproj`
-- App name: 译境 (Chinese for “realm of translation”)
-- UI language: Simplified Chinese
+- App name: 译境 (Chinese for “realm of translation”); shown as “Verto” in non-Chinese UI languages
+- UI languages: Simplified Chinese, English, Japanese, Korean, Spanish (switchable per app in iOS Settings; Simplified Chinese is the source language, string catalogs at `Verto/Localizable.xcstrings` + `Verto/InfoPlist.xcstrings`)
 - Bundle ID: `com.yspritan.verto`
 - Minimum OS: iOS 17
 - Stack: SwiftUI, native TabView, Observation, AVFoundation, PhotosUI, Speech (SpeechAnalyzer/SFSpeechRecognizer), Translation; on iOS 26+ the system tab bar automatically adopts Liquid Glass.
@@ -111,6 +111,8 @@ Diagnostics can be re-run anytime via `VertoTests/SpeechAvailabilityProbeTests` 
 The project ships a `VertoUITests` UI-test target whose acceptance flows cover text translation and favoriting, language search and selection, the full voice flow (idle → listening → finalized bubble → pause), voice playback-mode selection in Settings, camera recognition results, native-TabView cross-tab switching / selection sync / state retention, “draft → Done & Translate → restored result view”, and the DEBUG “Reduce Motion” end-state regression.
 
 UI tests uniformly launch with `--uitest-canned-translation`, `--uitest-canned-speech`, and `--uitest-reset-settings`: the first two inject fixed demo translations and scripted speech recognition (no real network, microphone, or TTS), the last resets persisted preferences so assertions stay stable.
+
+The UI is localized, and tests run pinned to Simplified Chinese: the shared scheme's Test action sets `zh-Hans` (covering the unit tests hosted in the app), and the UI tests additionally pass `-AppleLanguages` explicitly, so the Chinese copy assertions don't depend on the simulator language; `LocalizationTests` plus an English-UI smoke test cover resource completeness and real loading per language.
 
 Unit tests cover the conversation controller's state machine (throttling, generation-stale drops, endpoint timing, the TTS gating matrix, failure retry, cache hits, and more), the translation-routing fallback chain, playback-mode persistence, and locale mapping. The animation-visibility regression compares no fragile millisecond screenshots; instead a DEBUG probe on the actual `TextEntryPaperShape.path(in:)` drawing path verifies that expansion and collapse each pass through the start, at least one intermediate value, and the end; all other flows assert stable end states only.
 

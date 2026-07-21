@@ -82,7 +82,8 @@ struct HistoryView: View {
                     Image(systemName: systemImage)
                         .font(.system(size: 13, weight: .semibold))
                 }
-                Text(title)
+                // 调用侧传原始字面量当 key，此处查表渲染。
+                Text(LocalizedStringKey(title))
             }
             .font(.system(size: 14, weight: active ? .semibold : .medium))
             .foregroundStyle(active ? AppTheme.ink : AppTheme.muted)

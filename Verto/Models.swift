@@ -11,9 +11,9 @@ enum AppMode: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .text: "文字"
-        case .voice: "语音"
-        case .camera: "相机"
+        case .text: String(localized: "文字")
+        case .voice: String(localized: "语音")
+        case .camera: String(localized: "相机")
         }
     }
 
@@ -34,8 +34,8 @@ enum LanguageSelectionRole: String, Identifiable {
 
     var title: String {
         switch self {
-        case .source: "翻译自"
-        case .target: "翻译到"
+        case .source: String(localized: "翻译自")
+        case .target: String(localized: "翻译到")
         }
     }
 }
@@ -57,16 +57,17 @@ enum SheetDestination: Identifiable {
 struct Language: Identifiable, Equatable, Hashable {
     let code: String
     let nativeName: String
-    let chineseName: String
+    /// 按当前界面语言显示的注解名（如英文界面下的 "English (US)" 之于 "英语"）。
+    let localizedName: String
 
     var id: String { code }
 
-    static let chinese = Language(code: "zh-Hans", nativeName: "中文", chineseName: "简体中文")
-    static let english = Language(code: "en", nativeName: "English", chineseName: "英语")
-    static let japanese = Language(code: "ja", nativeName: "日本語", chineseName: "日语")
+    static let chinese = Language(code: "zh-Hans", nativeName: "中文", localizedName: String(localized: "简体中文"))
+    static let english = Language(code: "en", nativeName: "English", localizedName: String(localized: "英语"))
+    static let japanese = Language(code: "ja", nativeName: "日本語", localizedName: String(localized: "日语"))
 
     /// 仅作为源语言使用；不进入 all/recent，因而不会出现在目标语言列表里。
-    static let auto = Language(code: "auto", nativeName: "自动检测", chineseName: "自动识别输入语言")
+    static let auto = Language(code: "auto", nativeName: String(localized: "自动检测"), localizedName: String(localized: "自动识别输入语言"))
 
     var isAuto: Bool { code == "auto" }
 
@@ -76,10 +77,10 @@ struct Language: Identifiable, Equatable, Hashable {
         .english,
         .chinese,
         .japanese,
-        Language(code: "ko", nativeName: "한국어", chineseName: "韩语"),
-        Language(code: "fr", nativeName: "Français", chineseName: "法语"),
-        Language(code: "es", nativeName: "Español", chineseName: "西班牙语"),
-        Language(code: "de", nativeName: "Deutsch", chineseName: "德语")
+        Language(code: "ko", nativeName: "한국어", localizedName: String(localized: "韩语")),
+        Language(code: "fr", nativeName: "Français", localizedName: String(localized: "法语")),
+        Language(code: "es", nativeName: "Español", localizedName: String(localized: "西班牙语")),
+        Language(code: "de", nativeName: "Deutsch", localizedName: String(localized: "德语"))
     ]
 }
 
@@ -285,7 +286,7 @@ final class TranslationSession {
         guard sourceLanguage.isAuto, let detectedLanguage else {
             return sourceLanguage.nativeName
         }
-        return "\(detectedLanguage.nativeName) · 已检测"
+        return String(localized: "\(detectedLanguage.nativeName) · 已检测")
     }
 
     /// 历史与收藏中不落「自动检测」——已检测出语言时按检测结果记录。

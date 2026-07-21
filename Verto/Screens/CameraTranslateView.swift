@@ -275,7 +275,8 @@ struct CameraTranslateView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("闪光灯")
-            .accessibilityValue(isFlashOn ? "开启" : "关闭")
+            // 不用裸「关闭」：与关闭按钮的「关闭」（Close）同 key 异义，目录里无法各翻各的。
+            .accessibilityValue(isFlashOn ? "已开启" : "已关闭")
             .accessibilityHint("轻点切换闪光灯")
             .accessibilityIdentifier("camera.flashButton")
         }

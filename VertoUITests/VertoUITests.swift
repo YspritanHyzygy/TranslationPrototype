@@ -443,17 +443,35 @@ final class VertoUITests: XCTestCase {
         captureScreenshot(named: "native-tab-text", of: app)
     }
 
+    /// 英文界面冒烟：本地化目录真实生效（标题、tab、历史表头都不再是中文）。
+    /// 其余测试经 launchApp 默认参数钉在 zh-Hans，断言不受本地化影响。
+    @MainActor
+    func testEnglishLocalizationSmoke() throws {
+        let app = launchApp(mode: "text", language: "en", locale: "en_US")
+
+        XCTAssertTrue(app.staticTexts["Translate"].waitForExistence(timeout: 3))
+        XCTAssertTrue(tabButton(named: "Text", in: app).exists)
+
+        let historyButton = element("history-button", in: app)
+        XCTAssertTrue(historyButton.waitForExistence(timeout: 2))
+        XCTAssertEqual(historyButton.label, "History")
+        historyButton.tap()
+        XCTAssertTrue(app.staticTexts["History"].waitForExistence(timeout: 3))
+    }
+
     @MainActor
     private func launchApp(
         mode: String,
         sheet: String? = nil,
         reduceMotion: Bool = false,
-        motionProbe: Bool = false
+        motionProbe: Bool = false,
+        language: String = "zh-Hans",
+        locale: String = "zh_Hans_CN"
     ) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = [
-            "-AppleLanguages", "(zh-Hans)",
-            "-AppleLocale", "zh_Hans_CN",
+            "-AppleLanguages", "(\(language))",
+            "-AppleLocale", locale,
             "--uitest-mode", mode,
             // 固定演示译文/脚本化语音并复位持久化偏好，
             // UI 测试不碰真实网络、麦克风与 TTS，不受上次运行影响。

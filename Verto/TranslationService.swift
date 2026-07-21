@@ -10,17 +10,17 @@ enum TranslationEngine: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .google: "谷歌翻译"
-        case .custom: "自研模型"
-        case .llm: "LLM 翻译"
+        case .google: String(localized: "谷歌翻译")
+        case .custom: String(localized: "自研模型")
+        case .llm: String(localized: "LLM 翻译")
         }
     }
 
     var subtitle: String {
         switch self {
-        case .google: "免费 · 在线翻译"
-        case .custom: "端侧离线 · 更快更私密"
-        case .llm: "自带 API Key · 更高质量"
+        case .google: String(localized: "免费 · 在线翻译")
+        case .custom: String(localized: "端侧离线 · 更快更私密")
+        case .llm: String(localized: "自带 API Key · 更高质量")
         }
     }
 
@@ -58,11 +58,11 @@ enum TranslationError: LocalizedError, Equatable {
 
     var errorDescription: String? {
         switch self {
-        case .network: "网络连接失败，请检查网络后重试"
-        case .rateLimited: "请求过于频繁，请稍后再试"
-        case .serverError(let code): "翻译服务暂时不可用（HTTP \(code)）"
-        case .invalidResponse: "无法解析翻译结果，请重试"
-        case .textTooLong: "文本过长，请缩短后重试"
+        case .network: String(localized: "网络连接失败，请检查网络后重试")
+        case .rateLimited: String(localized: "请求过于频繁，请稍后再试")
+        case .serverError(let code): String(localized: "翻译服务暂时不可用（HTTP \(code)）")
+        case .invalidResponse: String(localized: "无法解析翻译结果，请重试")
+        case .textTooLong: String(localized: "文本过长，请缩短后重试")
         }
     }
 }
@@ -149,11 +149,11 @@ struct CannedTranslationService: TranslationService {
     private func fallbackTranslation(for text: String, target: Language) -> String {
         switch target.code {
         case "en":
-            return "A natural translation of “\(text)”"
+            return String(localized: "A natural translation of “\(text)”")
         case "zh-Hans":
-            return "“\(text)” 的自然译文"
+            return String(localized: "“\(text)” 的自然译文")
         case "ja":
-            return "「\(text)」の自然な翻訳"
+            return String(localized: "「\(text)」の自然な翻訳")
         default:
             return "[\(target.nativeName)] \(text)"
         }
@@ -167,8 +167,8 @@ struct CannedTranslationService: TranslationService {
             ]
         }
         return [
-            "\(translation) (更自然)",
-            "\(translation) (更简洁)"
+            String(localized: "\(translation) (更自然)"),
+            String(localized: "\(translation) (更简洁)")
         ]
     }
 

@@ -21,8 +21,8 @@
 ## 프로젝트
 
 - Xcode 프로젝트: `Verto.xcodeproj`
-- 앱 이름: 译境(중국어로 "번역의 경지"라는 뜻)
-- UI 언어: 중국어 간체
+- 앱 이름: 译境(중국어로 "번역의 경지"라는 뜻). 중국어 이외의 UI에서는 "Verto"로 표시
+- UI 언어: 중국어 간체·영어·일본어·한국어·스페인어(iOS 설정의 앱별 언어에서 전환 가능. 중국어 간체가 소스 언어이며 문자열 카탈로그는 `Verto/Localizable.xcstrings` + `Verto/InfoPlist.xcstrings`)
 - Bundle ID: `com.yspritan.verto`
 - 최소 OS: iOS 17
 - 기술: SwiftUI, 네이티브 TabView, Observation, AVFoundation, PhotosUI, Speech(SpeechAnalyzer/SFSpeechRecognizer), Translation. iOS 26+에서는 시스템 탭 바가 자동으로 Liquid Glass를 적용.
@@ -111,6 +111,8 @@ xcodebuild \
 프로젝트에는 `VertoUITests` UI 테스트 타깃이 포함되며, 수용 대상은 텍스트 번역과 즐겨찾기, 언어 검색과 선택, 음성 "대기 → 듣기 → 확정 말풍선 → 일시정지" 전체 플로우, 음성 낭독 모드 설정 선택, 카메라 인식 결과, 네이티브 TabView의 탭 간 전환/선택 상태 동기화/상태 유지, "초안 입력 → 완료 후 번역 → 결과 화면 복원", 그리고 DEBUG "동작 줄이기" 최종 상태 회귀 등 주요 플로우를 커버한다.
 
 UI 테스트는 일괄적으로 `--uitest-canned-translation`, `--uitest-canned-speech`, `--uitest-reset-settings` 실행 인자를 지닌다: 앞의 둘은 고정 데모 번역문과 스크립트화된 음성 인식을 주입하고(실제 네트워크·마이크·TTS에 접근하지 않음), 마지막 하나는 지속화된 설정을 초기화해 어서션의 안정을 보장한다.
+
+UI는 다국어화되었고 테스트는 일괄적으로 중국어 간체에 고정해 실행한다: 공유 Scheme의 Test action이 `zh-Hans`를 지정하고(앱에서 호스팅되는 단위 테스트까지 커버), UI 테스트는 추가로 실행 인자에서 `-AppleLanguages`를 명시적으로 전달하므로 중국어 문구 어서션은 시뮬레이터 언어의 영향을 받지 않는다. `LocalizationTests`와 영어 UI 스모크 테스트가 언어별 리소스의 완전성과 실제 로딩을 검증한다.
 
 단위 테스트는 대화 컨트롤러 상태 기계(스로틀링, generation 만료 폐기, 엔드포인트 타이밍, TTS 게이팅 매트릭스, 실패 재시도, 캐시 적중 등), 번역 라우팅 폴백 체인, 낭독 모드 지속화, locale 매핑을 커버한다. 애니메이션 가시성 회귀는 깨지기 쉬운 밀리초급 스크린숏 비교가 아니라, 실제 `TextEntryPaperShape.path(in:)` 드로잉 패스에 대한 DEBUG 프로브로 펼침과 접힘이 시작점·최소 한 개의 중간값·끝점을 통과하는지 검증한다. 그 외 플로우는 안정된 최종 상태만 어서트한다.
 

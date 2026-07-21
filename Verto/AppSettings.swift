@@ -11,17 +11,17 @@ enum VoicePlaybackMode: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .textOnly: "仅显示文字"
-        case .speakAfterTranslation: "翻译完自动朗读"
-        case .speakOnlyWithHeadphones: "仅戴耳机时朗读"
+        case .textOnly: String(localized: "仅显示文字")
+        case .speakAfterTranslation: String(localized: "翻译完自动朗读")
+        case .speakOnlyWithHeadphones: String(localized: "仅戴耳机时朗读")
         }
     }
 
     var subtitle: String {
         switch self {
-        case .textOnly: "不自动播放语音"
-        case .speakAfterTranslation: "每句译文完成后自动播放"
-        case .speakOnlyWithHeadphones: "连接耳机时才自动播放"
+        case .textOnly: String(localized: "不自动播放语音")
+        case .speakAfterTranslation: String(localized: "每句译文完成后自动播放")
+        case .speakOnlyWithHeadphones: String(localized: "连接耳机时才自动播放")
         }
     }
 }
@@ -36,17 +36,17 @@ enum AppearanceMode: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .system: "跟随系统"
-        case .light: "浅色"
-        case .dark: "深色"
+        case .system: String(localized: "跟随系统")
+        case .light: String(localized: "浅色")
+        case .dark: String(localized: "深色")
         }
     }
 
     var subtitle: String {
         switch self {
-        case .system: "与系统外观保持一致"
-        case .light: "始终使用浅色外观"
-        case .dark: "始终使用深色外观"
+        case .system: String(localized: "与系统外观保持一致")
+        case .light: String(localized: "始终使用浅色外观")
+        case .dark: String(localized: "始终使用深色外观")
         }
     }
 }

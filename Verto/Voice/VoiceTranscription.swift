@@ -26,13 +26,13 @@ enum SpeechTranscriptionError: LocalizedError, Equatable {
 
     var errorDescription: String? {
         switch self {
-        case .microphoneDenied: "未获得麦克风权限，请在系统设置中开启"
-        case .speechAuthorizationDenied: "未获得语音识别权限，请在系统设置中开启"
-        case .recognizerUnavailable: "当前设备暂不支持识别这种语言"
-        case .assetUnavailable: "语音识别模型未就绪，请联网后重试"
-        case .audioSessionFailure: "麦克风启动失败，请重试"
-        case .recognitionFailed: "语音识别出错，请重试"
-        case .unsupportedInSimulator: "模拟器暂不支持这种语言的识别，请在真机上测试"
+        case .microphoneDenied: String(localized: "未获得麦克风权限，请在系统设置中开启")
+        case .speechAuthorizationDenied: String(localized: "未获得语音识别权限，请在系统设置中开启")
+        case .recognizerUnavailable: String(localized: "当前设备暂不支持识别这种语言")
+        case .assetUnavailable: String(localized: "语音识别模型未就绪，请联网后重试")
+        case .audioSessionFailure: String(localized: "麦克风启动失败，请重试")
+        case .recognitionFailed: String(localized: "语音识别出错，请重试")
+        case .unsupportedInSimulator: String(localized: "模拟器暂不支持这种语言的识别，请在真机上测试")
         }
     }
 }

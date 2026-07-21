@@ -7,7 +7,7 @@ final class LanguageSpeechLocaleTests: XCTestCase {
         XCTAssertEqual(Language.english.speechLocaleIdentifier, "en-US")
         XCTAssertEqual(Language.japanese.speechLocaleIdentifier, "ja-JP")
         XCTAssertEqual(
-            Language(code: "ko", nativeName: "한국어", chineseName: "韩语").speechLocaleIdentifier,
+            Language(code: "ko", nativeName: "한국어", localizedName: "韩语").speechLocaleIdentifier,
             "ko-KR"
         )
     }

@@ -199,24 +199,24 @@ final class VoiceConversationController {
     var statusText: String {
         switch phase {
         case .idle:
-            hasEverListened ? "已暂停 · 轻点继续" : "轻点开始对话"
+            hasEverListened ? String(localized: "已暂停 · 轻点继续") : String(localized: "轻点开始对话")
         case .preparing:
             if let progress = assetDownloadProgress, progress < 1 {
-                "正在下载语言模型 \(Int(progress * 100))%"
+                String(localized: "正在下载语言模型 \(Int(progress * 100))%")
             } else {
-                "正在准备语音识别…"
+                String(localized: "正在准备语音识别…")
             }
         case .listening:
             switch listeningMode {
             case .auto:
-                "正在聆听 · \(voiceSource.nativeName) / \(voiceTarget.nativeName)"
+                String(localized: "正在聆听 · \(voiceSource.nativeName) / \(voiceTarget.nativeName)")
             case .manual:
-                "正在聆听 · \(speakingLanguage.nativeName)"
+                String(localized: "正在聆听 · \(speakingLanguage.nativeName)")
             }
         case .finalizing:
-            "正在翻译…"
+            String(localized: "正在翻译…")
         case .speaking:
-            "正在朗读…"
+            String(localized: "正在朗读…")
         case .failed(let failure):
             failure.message
         }
@@ -816,7 +816,7 @@ final class VoiceConversationController {
         if let localized = (error as? LocalizedError)?.errorDescription {
             return localized
         }
-        return SpeechTranscriptionError.recognitionFailed.errorDescription ?? "语音识别出错，请重试"
+        return SpeechTranscriptionError.recognitionFailed.errorDescription ?? String(localized: "语音识别出错，请重试")
     }
 
     private func inferredLanguageCode(for turn: ConversationTurn) -> String? {

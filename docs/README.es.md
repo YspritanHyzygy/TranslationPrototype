@@ -21,8 +21,8 @@
 ## Proyecto
 
 - Proyecto de Xcode: `Verto.xcodeproj`
-- Nombre de la app: 译境 (en chino, «el reino de la traducción»)
-- Idioma de la interfaz: chino simplificado
+- Nombre de la app: 译境 (en chino, «el reino de la traducción»); se muestra como «Verto» en idiomas de interfaz distintos del chino
+- Idiomas de la interfaz: chino simplificado, inglés, japonés, coreano y español (se puede cambiar por app en Ajustes de iOS; el chino simplificado es el idioma fuente, con catálogos de cadenas en `Verto/Localizable.xcstrings` + `Verto/InfoPlist.xcstrings`)
 - Bundle ID: `com.yspritan.verto`
 - Sistema mínimo: iOS 17
 - Tecnologías: SwiftUI, TabView nativo, Observation, AVFoundation, PhotosUI, Speech (SpeechAnalyzer/SFSpeechRecognizer), Translation; en iOS 26+ la barra de pestañas del sistema adopta Liquid Glass automáticamente.
@@ -111,6 +111,8 @@ El diagnóstico puede repetirse en cualquier momento con `VertoTests/SpeechAvail
 El proyecto incluye el target de pruebas de UI `VertoUITests`, cuyos flujos de aceptación cubren traducción de texto y favoritos, búsqueda y selección de idiomas, el flujo completo de voz (reposo → escucha → burbuja confirmada → pausa), la selección del modo de lectura en Ajustes, resultados de reconocimiento de cámara, cambio entre pestañas del TabView nativo / sincronización de selección / retención de estado, «borrador → Terminar y traducir → vista de resultado restaurada», y la regresión del estado final con «Reducir movimiento» en DEBUG.
 
 Las pruebas de UI se lanzan siempre con `--uitest-canned-translation`, `--uitest-canned-speech` y `--uitest-reset-settings`: los dos primeros inyectan traducciones de demostración fijas y reconocimiento de voz guionizado (sin red real, sin micrófono ni TTS), y el último restablece las preferencias persistidas para que las aserciones sean estables.
+
+La interfaz está localizada y las pruebas se ejecutan fijadas al chino simplificado: la Test action del scheme compartido establece `zh-Hans` (lo que cubre las pruebas unitarias alojadas en la app), y las pruebas de UI pasan además `-AppleLanguages` explícitamente, de modo que las aserciones sobre textos en chino no dependen del idioma del simulador; `LocalizationTests` y una prueba de humo con la interfaz en inglés verifican la integridad y la carga real de los recursos de cada idioma.
 
 Las pruebas unitarias cubren la máquina de estados del controlador de conversación (regulación, descarte por generación caducada, temporización de cierres, la matriz de compuertas del TTS, reintentos tras fallo, aciertos de caché, etc.), la cadena de respaldo del enrutado de traducción, la persistencia del modo de lectura y el mapeo de locales. La regresión de visibilidad de animaciones no compara frágiles capturas milimétricas; en su lugar, una sonda DEBUG sobre el path real de dibujo `TextEntryPaperShape.path(in:)` verifica que la expansión y la recogida pasan por el inicio, al menos un valor intermedio y el final; el resto de flujos solo asevera estados finales estables.
 

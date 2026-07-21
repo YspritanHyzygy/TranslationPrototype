@@ -143,8 +143,8 @@ struct SettingsView: View {
     private var preferenceCard: some View {
         VStack(spacing: 0) {
             ToggleRow(
-                title: "翻译后自动朗读译文",
-                subtitle: "完成翻译后自动播放语音",
+                title: String(localized: "翻译后自动朗读译文"),
+                subtitle: String(localized: "完成翻译后自动播放语音"),
                 isOn: $settings.autoSpeaksTranslation
             )
             .accessibilityIdentifier("settings.autoSpeakToggle")
@@ -180,8 +180,8 @@ struct SettingsView: View {
     }
 
     private func accessibilityValue(for engine: TranslationEngine) -> String {
-        guard engine.isAvailable else { return "即将推出" }
-        return settings.translationEngine == engine ? "已选择" : ""
+        guard engine.isAvailable else { return String(localized: "即将推出") }
+        return settings.translationEngine == engine ? String(localized: "已选择") : ""
     }
 }
 

@@ -21,7 +21,8 @@
 ## 工程
 
 - Xcode 工程：`Verto.xcodeproj`
-- App 名称：译境
+- App 名称：译境（非中文界面下显示为 Verto）
+- 界面语言：简体中文、English、日本語、한국어、Español（可在系统设置的 App 语言里切换；简体中文为源语言，字符串目录 `Verto/Localizable.xcstrings` + `Verto/InfoPlist.xcstrings`）
 - Bundle ID：`com.yspritan.verto`
 - 最低系统：iOS 17
 - 技术：SwiftUI、原生 TabView、Observation、AVFoundation、PhotosUI、Speech（SpeechAnalyzer/SFSpeechRecognizer）、Translation；iOS 26+ 的系统标签栏自动采用 Liquid Glass。
@@ -110,6 +111,8 @@ xcodebuild \
 工程包含 `VertoUITests` UI 测试 Target，验收目标覆盖文字翻译与收藏、语言搜索与选择、语音「待机 → 聆听 → 定稿气泡 → 暂停」全流程、语音朗读模式设置选择、相机识别结果、原生 TabView 的跨 tab 切换/选中态同步/状态保留、“键入草稿 → 完成并翻译 → 恢复结果页”，以及 DEBUG “减弱动态效果”终态回归等主流程。
 
 UI 测试统一携带 `--uitest-canned-translation`、`--uitest-canned-speech` 与 `--uitest-reset-settings` 启动参数：前两者注入固定演示译文与脚本化语音识别（不访问真实网络、不碰麦克风与 TTS），后者复位持久化偏好，保证断言稳定。
+
+界面已多语言化，测试统一钉在简体中文运行：共享 Scheme 的 Test action 指定 `zh-Hans`（管住宿主 app 里的单元测试），UI 测试另在启动参数里显式传 `-AppleLanguages`，中文文案断言因此不受模拟器语言影响；`LocalizationTests` 与英文界面冒烟测试覆盖各语言资源的完整性与真实加载。
 
 单元测试覆盖对话控制器状态机（节流、generation 过期丢弃、端点计时、TTS 门控矩阵、失败重试、缓存命中等）、翻译路由回退链、朗读模式持久化与 locale 映射。动画可见性回归不比较脆弱的毫秒级截图，而是由实际 `TextEntryPaperShape.path(in:)` 绘制路径的 DEBUG 探针验证展开和收回均经过起点、至少一个中间值与终点；其余流程只断言稳定终态。
 

@@ -78,8 +78,8 @@ struct LanguagePickerView: View {
 
     private var segmentedControl: some View {
         HStack(spacing: 0) {
-            segment("翻译到", role: .target)
-            segment("翻译自", role: .source)
+            segment(role: .target)
+            segment(role: .source)
         }
         .padding(3)
         .background(AppTheme.inset, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -90,7 +90,8 @@ struct LanguagePickerView: View {
         .accessibilityIdentifier("languagePicker.roleSelector")
     }
 
-    private func segment(_ title: String, role segmentRole: LanguageSelectionRole) -> some View {
+    private func segment(role segmentRole: LanguageSelectionRole) -> some View {
+        let title = segmentRole.title
         let isActive = effectiveRole == segmentRole
 
         return Button {
@@ -234,7 +235,7 @@ struct LanguagePickerView: View {
         let query = normalized(searchText.trimmingCharacters(in: .whitespacesAndNewlines))
         guard !query.isEmpty else { return true }
 
-        return [language.nativeName, language.chineseName, language.code]
+        return [language.nativeName, language.localizedName, language.code]
             .map(normalized)
             .contains { $0.contains(query) }
     }
@@ -265,9 +266,10 @@ struct LanguagePickerView: View {
                         LanguageRow(language: language, isSelected: language == activeSelection)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("\(language.nativeName)，\(language.chineseName)")
+                    .accessibilityLabel("\(language.nativeName)，\(language.localizedName)")
                     .accessibilityValue(language == activeSelection ? "已选择" : "")
-                    .accessibilityHint("选择为\(effectiveRole.title)语言")
+                    // 整句成对，不做「选择为%@语言」的语序拼接——各语言语序不同。
+                    .accessibilityHint(effectiveRole == .source ? "选择为翻译自语言" : "选择为翻译到语言")
                     .accessibilityIdentifier("languagePicker.language.\(language.code)")
 
                     if index < languages.count - 1 {
@@ -298,7 +300,7 @@ private struct LanguageRow: View {
                 Text(language.nativeName)
                     .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(AppTheme.ink)
-                Text(language.chineseName)
+                Text(language.localizedName)
                     .font(.system(size: 13, weight: .regular))
                     .foregroundStyle(AppTheme.faint)
             }
